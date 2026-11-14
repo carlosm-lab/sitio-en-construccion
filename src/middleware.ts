@@ -2,6 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  // Si Supabase redirige un código OAuth PKCE a la raíz u otra ruta distinta de /auth/callback,
+  // reenviarlo inmediatamente a /auth/callback conservando todos los parámetros.
+  if (
+    pathname !== '/auth/callback' &&
+    !pathname.startsWith('/api/') &&
+    request.nextUrl.searchParams.has('code')
+  ) {
+    const callbackUrl = request.nextUrl.clone();
+    if (!callbackUrl.searchParams.has('next') && pathname !== '/') {
+      callbackUrl.searchParams.set('next', pathname);
+    }
+    callbackUrl.pathname = '/auth/callback';
+    return NextResponse.redirect(callbackUrl);
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -32,7 +49,6 @@ export async function middleware(request: NextRequest) {
     await supabase.auth.getUser().catch(() => null);
   }
 
-  const pathname = request.nextUrl.pathname;
   if (
     pathname.startsWith('/admin') ||
     pathname.startsWith('/api/admin') ||
@@ -46,5 +62,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/admin/:path*', '/vip/:path*', '/auth/:path*'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+  ],
 };

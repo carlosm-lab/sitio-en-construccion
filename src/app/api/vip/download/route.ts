@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { customer } = resolved;
+    const { customer, hasCustomerRow } = resolved;
     const type = req.nextUrl.searchParams.get('type');
     const id = req.nextUrl.searchParams.get('id');
     const mode = req.nextUrl.searchParams.get('mode');
@@ -52,8 +52,8 @@ export async function GET(req: NextRequest) {
       );
 
       await insertAuditLog({
-        customerId: customer.id,
-        paypalOrderId: customer.paypal_order_id,
+        customerId: hasCustomerRow ? customer.id : null,
+        paypalOrderId: hasCustomerRow ? customer.paypal_order_id : null,
         ipAddress: forensic.ipAddress,
         userAgent: forensic.userAgent,
         action: 'ASSET_DOWNLOADED',
@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
           storage_path: art.high_res_path,
           downloaded_at: new Date().toISOString(),
         },
-      });
+      }).catch(() => {});
 
       if (mode === 'json') {
         return NextResponse.json({ signedUrl, filename });
@@ -93,8 +93,8 @@ export async function GET(req: NextRequest) {
       );
 
       await insertAuditLog({
-        customerId: customer.id,
-        paypalOrderId: customer.paypal_order_id,
+        customerId: hasCustomerRow ? customer.id : null,
+        paypalOrderId: hasCustomerRow ? customer.paypal_order_id : null,
         ipAddress: forensic.ipAddress,
         userAgent: forensic.userAgent,
         action: 'ASSET_DOWNLOADED',
@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
           storage_path: manual.file_path,
           downloaded_at: new Date().toISOString(),
         },
-      });
+      }).catch(() => {});
 
       if (mode === 'json') {
         return NextResponse.json({ signedUrl, filename });

@@ -2,20 +2,22 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Sparkles, Search } from 'lucide-react';
-import { ArtworkCategory, ArtworkPublic } from '@/types';
+import { ArtworkCategory, ArtworkFull, ArtworkPublic } from '@/types';
 import { CATEGORIES } from '@/lib/constants';
 import { ArtworkCard } from './ArtworkCard';
 
 interface GalleryExplorerProps {
-  artworks: ArtworkPublic[];
+  artworks: Array<ArtworkPublic | ArtworkFull>;
   initialCategory?: ArtworkCategory | 'all';
   showFilters?: boolean;
+  serverUnlocked?: boolean;
 }
 
 export function GalleryExplorer({
   artworks,
   initialCategory = 'all',
   showFilters = true,
+  serverUnlocked = false,
 }: GalleryExplorerProps) {
   const [selectedCategory, setSelectedCategory] = useState<ArtworkCategory | 'all'>(
     initialCategory
@@ -127,7 +129,11 @@ export function GalleryExplorer({
         <>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {displayed.map((artwork) => (
-              <ArtworkCard key={artwork.id} artwork={artwork} />
+              <ArtworkCard
+                key={artwork.id}
+                artwork={artwork}
+                serverUnlocked={serverUnlocked}
+              />
             ))}
           </div>
 

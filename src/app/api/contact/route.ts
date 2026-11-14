@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       sent: true,
       ticketId: created.id,
       message:
-        'Tu solicitud ha quedado registrada en nuestro sistema de soporte (soporte@artedigital.click). Tiempo de respuesta habitual: menos de 24 horas hábiles.',
+        'Tu mensaje ha quedado registrado directamente en nuestro Centro de Soporte. Te responderemos a tu correo electrónico en menos de 24 horas hábiles.',
     });
   } catch (error) {
     console.error('Error en POST /api/contact:', error);

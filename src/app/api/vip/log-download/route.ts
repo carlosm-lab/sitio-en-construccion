@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Límite de eventos alcanzado.' }, { status: 429 });
     }
 
-    const { customer } = resolved;
+    const { customer, hasCustomerRow } = resolved;
     const body = await req.json().catch(() => ({}));
     const { resourceId, resourceType } = body as {
       resourceId?: string;
@@ -43,8 +43,8 @@ export async function POST(req: NextRequest) {
     }
 
     const log = await insertAuditLog({
-      customerId: customer.id,
-      paypalOrderId: customer.paypal_order_id,
+      customerId: hasCustomerRow ? customer.id : null,
+      paypalOrderId: hasCustomerRow ? customer.paypal_order_id : null,
       ipAddress: forensic.ipAddress,
       userAgent: forensic.userAgent,
       action: 'ASSET_DOWNLOADED',

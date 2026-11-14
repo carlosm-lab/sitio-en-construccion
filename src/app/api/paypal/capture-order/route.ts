@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     ) {
       return NextResponse.json(
         {
-          error: 'El pago en PayPal no pudo verificarse como completado por $20.00 USD.',
+          error: `El pago en PayPal no pudo verificarse como completado por $${MEMBERSHIP_PRICE_USD} USD.`,
         },
         { status: 402 }
       );

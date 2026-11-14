@@ -2,13 +2,14 @@
 
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   AlertCircle,
   BookOpen,
   Check,
   Copy,
   Download,
-  KeyRound,
+  LayoutDashboard,
   Loader2,
   LogOut,
   ShieldCheck,
@@ -26,23 +27,19 @@ interface VipCustomerInfo {
 }
 
 export default function VipDashboardPage() {
-  const { openCheckout, refreshVipSession } = useGalleryModal();
+  const { openCheckout, refreshVipSession, signOut } = useGalleryModal();
 
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
+  const [isAdminUser, setIsAdminUser] = useState(false);
   const [customer, setCustomer] = useState<VipCustomerInfo | null>(null);
   const [artworks, setArtworks] = useState<ArtworkFull[]>([]);
   const [manuals, setManuals] = useState<ManualItem[]>([]);
   const [oauthEmailWithoutLicense, setOauthEmailWithoutLicense] = useState<
     string | null
   >(null);
-
-  const [emailInput, setEmailInput] = useState('');
-  const [codeInput, setCodeInput] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [loginBusy, setLoginBusy] = useState(false);
 
-  const [copiedLicense, setCopiedLicense] = useState(false);
   const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
 
@@ -51,7 +48,7 @@ export default function VipDashboardPage() {
       const params = new URLSearchParams(window.location.search);
       if (params.get('auth_error')) {
         setLoginError(
-          'No se pudo completar la autenticación con Google. Puedes intentar de nuevo o ingresar con tu Código de Licencia.'
+          'No se pudo completar la autenticación con Google. Por favor intenta de nuevo.'
         );
       }
     }
@@ -59,7 +56,7 @@ export default function VipDashboardPage() {
     fetch('/api/vip/verify', { cache: 'no-store' })
       .then(async (res) => {
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
+        if (!res.ok || !data?.authenticated) {
           setAuthenticated(false);
           if (data?.oauthEmailWithoutLicense) {
             setOauthEmailWithoutLicense(String(data.oauthEmailWithoutLicense));
@@ -67,60 +64,18 @@ export default function VipDashboardPage() {
           setLoading(false);
           return;
         }
-        if (data.authenticated) {
-          setAuthenticated(true);
-          setCustomer(data.customer);
-          setArtworks(data.artworks || []);
-          setManuals(data.manuals || []);
-          refreshVipSession();
-        }
+        setAuthenticated(true);
+        setIsAdminUser(Boolean(data.isAdmin));
+        setCustomer(data.customer);
+        setArtworks(data.artworks || []);
+        setManuals(data.manuals || []);
+        refreshVipSession();
         setLoading(false);
       })
       .catch(() => {
         setLoading(false);
       });
   }, [refreshVipSession]);
-
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(false);
-    setLoginBusy(true);
-    setLoginError(null);
-
-    try {
-      const res = await fetch('/api/vip/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: emailInput.trim(),
-          licenseCode: codeInput.trim().toUpperCase(),
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.authenticated) {
-        setLoginError(data.error || 'No se pudo validar tu licencia.');
-        setLoginBusy(false);
-        return;
-      }
-      setAuthenticated(true);
-      setCustomer(data.customer);
-      setArtworks(data.artworks || []);
-      setManuals(data.manuals || []);
-      setOauthEmailWithoutLicense(null);
-      await refreshVipSession();
-    } catch {
-      setLoginError('Error de conexión validando acceso VIP.');
-    } finally {
-      setLoginBusy(false);
-    }
-  };
-
-  const handleCopyLicense = async () => {
-    if (!customer) return;
-    await navigator.clipboard.writeText(customer.license_code);
-    setCopiedLicense(true);
-    setTimeout(() => setCopiedLicense(false), 2500);
-  };
 
   const handleCopyPrompt = async (artwork: ArtworkFull) => {
     await navigator.clipboard.writeText(artwork.prompt_full);
@@ -174,11 +129,10 @@ export default function VipDashboardPage() {
   };
 
   const handleLogout = async () => {
-    await fetch('/api/vip/logout', { method: 'POST' });
     setAuthenticated(false);
     setCustomer(null);
     setOauthEmailWithoutLicense(null);
-    await refreshVipSession();
+    await signOut();
   };
 
   if (loading) {
@@ -186,7 +140,7 @@ export default function VipDashboardPage() {
       <div className="mx-auto flex min-h-[60vh] max-w-4xl flex-col items-center justify-center px-4">
         <Loader2 className="h-8 w-8 animate-spin text-accent" />
         <p className="mt-3 text-sm font-medium text-ink/75">
-          Verificando tu licencia de miembro VIP...
+          Verificando tu acceso con Google...
         </p>
       </div>
     );
@@ -195,136 +149,83 @@ export default function VipDashboardPage() {
   if (!authenticated || !customer) {
     return (
       <div className="mx-auto max-w-xl px-4 py-16 sm:px-6">
-        <div className="rounded-3xl border border-ink/20 bg-surface/70 p-8">
+        <div className="rounded-3xl border border-ink/20 bg-surface/75 p-8">
           <div className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-canvas px-3 py-1 text-xs font-semibold text-ink">
-            <KeyRound className="h-3.5 w-3.5 text-accent" />
-            Área Privada de Miembros
+            <ShieldCheck className="h-3.5 w-3.5 text-accent" />
+            Acceso Directo con Google OAuth
           </div>
 
           <h1 className="mt-4 font-serif text-3xl font-semibold text-ink">
-            Accede a tu Biblioteca VIP
+            Biblioteca Privada ArteDigital.click
           </h1>
-          <p className="mt-2 text-sm text-ink/80">
-            Inicia sesión con tu cuenta de Google vinculada a la compra o ingresa
-            el correo electrónico y tu Código de Licencia{' '}
-            <code className="font-mono font-semibold">AD-XXXX-XXXX</code>.
+          <p className="mt-2 text-sm leading-relaxed text-ink/80">
+            Inicia sesión con tu cuenta de Google para acceder a todas las obras
+            en alta resolución 4K sin marca de agua, los prompts completos y los
+            manuales PDF.
           </p>
 
-          {oauthEmailWithoutLicense && (
-            <div className="mt-4 rounded-2xl border border-accent bg-canvas p-4 text-xs text-ink">
-              <div className="flex items-start gap-2">
+          {loginError && (
+            <div className="mt-4 rounded-xl border border-accent/45 bg-canvas p-3.5 text-xs font-medium text-ink">
+              {loginError}
+            </div>
+          )}
+
+          {oauthEmailWithoutLicense ? (
+            <div className="mt-5 rounded-2xl border border-accent bg-canvas p-5 text-xs text-ink">
+              <div className="flex items-start gap-2.5">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
                 <div>
                   <p className="font-semibold text-ink">
-                    Has iniciado sesión con Google como{' '}
+                    Has conectado la cuenta de Google{' '}
                     <span className="underline">{oauthEmailWithoutLicense}</span>,
-                    pero no encontramos una licencia VIP activa asociada a ese
-                    correo.
+                    pero aún no tiene un Pase de Acceso Total activo.
                   </p>
-                  <p className="mt-1 text-ink/75">
-                    Si compraste con otro correo, ingresa tu Correo de Compra +
-                    Código AD-XXXX-XXXX abajo, o adquiere tu licencia vitalicia.
+                  <p className="mt-1.5 leading-relaxed text-ink/75">
+                    Puedes activar tu Pase de Acceso Total en esta cuenta por un
+                    pago único de $25 USD o cambiar a otra cuenta de Google.
                   </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="rounded-lg border border-ink/20 bg-surface px-3 py-1.5 font-semibold text-ink hover:bg-surface-blue"
-                    >
-                      Cambiar cuenta de Google
-                    </button>
+                  <div className="mt-4 flex flex-wrap gap-2.5">
                     <button
                       type="button"
                       onClick={() => openCheckout()}
-                      className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-white hover:opacity-90"
+                      className="rounded-xl bg-accent px-4 py-2.5 font-semibold text-white hover:opacity-90"
                     >
-                      Adquirir Licencia ($20 USD)
+                      Activar Pase Total — $25 USD
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="rounded-xl border border-ink/20 bg-surface px-4 py-2.5 font-semibold text-ink hover:bg-surface-blue"
+                    >
+                      Cambiar cuenta de Google
                     </button>
                   </div>
                 </div>
               </div>
             </div>
-          )}
-
-          <div className="mt-5">
-            <GoogleSignInButton nextPath="/vip" label="Entrar al Área VIP con Google" />
-          </div>
-
-          <div className="my-5 flex items-center gap-3 text-[11px] font-semibold uppercase tracking-wider text-ink/50">
-            <span className="h-px flex-1 bg-ink/15" />
-            <span>O con tu Código de Miembro</span>
-            <span className="h-px flex-1 bg-ink/15" />
-          </div>
-
-          <form onSubmit={handleLoginSubmit} className="space-y-4">
-            <div>
-              <label
-                htmlFor="vip-email"
-                className="block text-xs font-semibold uppercase tracking-wider text-ink/80"
-              >
-                Correo de Compra
-              </label>
-              <input
-                id="vip-email"
-                type="email"
-                required
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                placeholder="tu@correo.com"
-                className="mt-1.5 w-full rounded-xl border border-ink/25 bg-white px-4 py-3 text-sm text-ink focus:border-accent focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="vip-license"
-                className="block text-xs font-semibold uppercase tracking-wider text-ink/80"
-              >
-                Código de Licencia
-              </label>
-              <input
-                id="vip-license"
-                type="text"
-                required
-                value={codeInput}
-                onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
-                placeholder="AD-XXXX-XXXX"
-                className="mt-1.5 w-full rounded-xl border border-ink/25 bg-white px-4 py-3 font-mono text-sm uppercase tracking-wider text-ink focus:border-accent focus:outline-none"
-              />
-            </div>
-
-            {loginError && (
-              <div className="rounded-xl border border-accent/45 bg-canvas p-3 text-xs font-medium text-ink">
-                {loginError}
+          ) : (
+            <>
+              <div className="mt-6">
+                <GoogleSignInButton
+                  nextPath="/vip"
+                  label="Continuar con Google"
+                />
               </div>
-            )}
 
-            <button
-              type="submit"
-              disabled={loginBusy}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-4 py-3.5 text-sm font-semibold text-canvas hover:opacity-90 disabled:opacity-60"
-            >
-              {loginBusy ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Validando...
-                </>
-              ) : (
-                'Validar y Entrar al Panel VIP'
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 border-t border-ink/15 pt-5 text-center">
-            <p className="text-xs text-ink/75">¿Todavía no tienes tu licencia?</p>
-            <button
-              type="button"
-              onClick={() => openCheckout()}
-              className="mt-2 rounded-xl bg-accent px-5 py-2.5 text-xs font-semibold text-white hover:opacity-90"
-            >
-              Desbloquear Acceso Vitalicio — $20 USD
-            </button>
-          </div>
+              <div className="mt-6 border-t border-ink/15 pt-5 text-center">
+                <p className="text-xs text-ink/75">
+                  ¿Aún no tienes tu Pase de Acceso Total Vitalicio?
+                </p>
+                <button
+                  type="button"
+                  onClick={() => openCheckout()}
+                  className="mt-2.5 rounded-xl bg-accent px-5 py-2.5 text-xs font-semibold text-white hover:opacity-90"
+                >
+                  Obtener Pase de Acceso Total — $25 USD
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     );
@@ -332,55 +233,42 @@ export default function VipDashboardPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      {/* Tarjeta de Código de Miembro */}
+      {/* Cabecera de Cuenta Activa */}
       <section className="rounded-3xl border-2 border-ink bg-surface p-6 sm:p-8">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-ink bg-canvas px-3 py-1 text-xs font-semibold text-ink">
               <ShieldCheck className="h-3.5 w-3.5 text-accent" />
-              Membresía Vitalicia Activa
+              {isAdminUser
+                ? 'Modo Administrador — Acceso Total Habilitado'
+                : 'Pase de Acceso Total Vitalicio Activo'}
             </div>
             <h1 className="mt-3 font-serif text-3xl font-semibold text-ink sm:text-4xl">
-              Bienvenido al Panel VIP de ArteDigital.click
+              Biblioteca Completa de ArteDigital.click
             </h1>
             <p className="mt-1.5 text-sm text-ink/80">
-              Titular verificado: <span className="font-semibold">{customer.email}</span>
+              Cuenta de Google verificada:{' '}
+              <span className="font-semibold">{customer.email}</span>
             </p>
           </div>
 
-          <div className="flex flex-col items-start gap-2 rounded-2xl border border-ink bg-canvas p-4 sm:items-end">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-ink/70">
-              Tu Código de Miembro Único
-            </span>
-            <div className="flex items-center gap-3">
-              <code className="font-mono text-2xl font-bold tracking-wider text-ink">
-                {customer.license_code}
-              </code>
-              <button
-                type="button"
-                onClick={handleCopyLicense}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+          <div className="flex flex-wrap items-center gap-3">
+            {isAdminUser && (
+              <Link
+                href="/admin"
+                className="inline-flex items-center gap-2 rounded-xl border border-ink/25 bg-canvas px-4 py-2.5 text-xs font-semibold text-ink transition-colors hover:bg-surface-blue"
               >
-                {copiedLicense ? (
-                  <>
-                    <Check className="h-3.5 w-3.5" />
-                    Copiado
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-3.5 w-3.5" />
-                    Copiar Código
-                  </>
-                )}
-              </button>
-            </div>
+                <LayoutDashboard className="h-4 w-4 text-accent" />
+                Centro de Control Admin
+              </Link>
+            )}
             <button
               type="button"
               onClick={handleLogout}
-              className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-ink/70 underline hover:text-accent"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-ink/25 bg-canvas px-4 py-2.5 text-xs font-semibold text-ink/80 transition-colors hover:border-accent hover:text-accent"
             >
-              <LogOut className="h-3 w-3" />
-              Cerrar sesión en este dispositivo
+              <LogOut className="h-3.5 w-3.5" />
+              Cerrar sesión
             </button>
           </div>
         </div>
@@ -403,7 +291,7 @@ export default function VipDashboardPage() {
 
         {manuals.length === 0 ? (
           <p className="mt-4 rounded-2xl border border-ink/15 bg-surface/50 p-6 text-sm text-ink/75">
-            Nuevas guías técnicas en preparación para miembros VIP.
+            Nuevas guías técnicas en preparación.
           </p>
         ) : (
           <div className="mt-5 grid gap-5 md:grid-cols-3">
@@ -427,7 +315,9 @@ export default function VipDashboardPage() {
 
                 <button
                   type="button"
-                  onClick={() => handleDownloadAsset('manual', manual.id, manual.title)}
+                  onClick={() =>
+                    handleDownloadAsset('manual', manual.id, manual.title)
+                  }
                   className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
                 >
                   <Download className="h-3.5 w-3.5" />
@@ -450,7 +340,7 @@ export default function VipDashboardPage() {
 
         {artworks.length === 0 ? (
           <p className="mt-4 rounded-2xl border border-ink/15 bg-surface/50 p-6 text-sm text-ink/75">
-            Nuevas obras master en preparación para miembros VIP.
+            Nuevas obras master en preparación.
           </p>
         ) : (
           <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -461,7 +351,10 @@ export default function VipDashboardPage() {
                   key={artwork.id}
                   className="flex flex-col overflow-hidden rounded-2xl border border-ink/20 bg-surface/50"
                 >
-                  <div className="relative aspect-[4/5] w-full bg-surface-blue">
+                  <Link
+                    href={`/arte/${artwork.slug}`}
+                    className="relative aspect-[4/5] w-full bg-surface-blue"
+                  >
                     <Image
                       src={artwork.high_res_signed_url || artwork.watermarked_url}
                       alt={artwork.alt_text}
@@ -472,13 +365,16 @@ export default function VipDashboardPage() {
                     <span className="absolute left-3 top-3 rounded-full border border-ink/20 bg-canvas/95 px-2.5 py-1 text-[11px] font-semibold text-ink">
                       {catMeta?.name || artwork.category}
                     </span>
-                  </div>
+                  </Link>
 
                   <div className="flex flex-1 flex-col justify-between bg-canvas/85 p-5">
                     <div>
-                      <h3 className="font-serif text-xl font-semibold text-ink">
+                      <Link
+                        href={`/arte/${artwork.slug}`}
+                        className="font-serif text-xl font-semibold text-ink hover:text-accent hover:underline"
+                      >
                         {artwork.title}
-                      </h3>
+                      </Link>
 
                       <div className="mt-3 rounded-xl border border-ink/15 bg-white p-3">
                         <p className="font-mono text-[11px] leading-relaxed text-ink">

@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import { useGalleryModal } from './GalleryContext';
+import { GoogleSignInButton } from './GoogleSignInButton';
 
 declare global {
   interface Window {
@@ -39,11 +40,14 @@ export function CheckoutModal() {
     isCheckoutOpen,
     selectedArtworkTitle,
     closeCheckout,
-    openLogin,
+    hasFullAccess,
+    googleUser,
+    signInWithGoogle,
     refreshVipSession,
   } = useGalleryModal();
 
   const [email, setEmail] = useState('');
+  const [editingCustomEmail, setEditingCustomEmail] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [sdkReady, setSdkReady] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -55,6 +59,12 @@ export function CheckoutModal() {
   const termsRef = useRef(termsAccepted);
   const termsTimestampRef = useRef(termsTimestamp);
 
+  useEffect(() => {
+    if (googleUser?.email && !editingCustomEmail) {
+      setEmail(googleUser.email);
+    }
+  }, [googleUser, editingCustomEmail]);
+
   emailRef.current = email;
   termsRef.current = termsAccepted;
   termsTimestampRef.current = termsTimestamp;
@@ -63,7 +73,7 @@ export function CheckoutModal() {
   const isUnlocked = isEmailValid && termsAccepted;
 
   useEffect(() => {
-    if (!isCheckoutOpen) return;
+    if (!isCheckoutOpen || hasFullAccess) return;
 
     const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
     if (!clientId) {
@@ -99,10 +109,10 @@ export function CheckoutModal() {
       );
     };
     document.body.appendChild(script);
-  }, [isCheckoutOpen]);
+  }, [isCheckoutOpen, hasFullAccess]);
 
   useEffect(() => {
-    if (!isCheckoutOpen || !isUnlocked || !sdkReady || !window.paypal) {
+    if (!isCheckoutOpen || hasFullAccess || !isUnlocked || !sdkReady || !window.paypal) {
       return;
     }
     const container = paypalContainerRef.current;
@@ -169,7 +179,7 @@ export function CheckoutModal() {
           router.push('/vip');
           router.refresh();
         } catch {
-          setErrorMsg('Error de red al confirmar la licencia VIP.');
+          setErrorMsg('Error de red al activar tu Pase de Acceso Total.');
           setIsProcessing(false);
         }
       },
@@ -192,9 +202,17 @@ export function CheckoutModal() {
         buttons.close().catch(() => {});
       }
     };
-  }, [isCheckoutOpen, isUnlocked, sdkReady, closeCheckout, refreshVipSession, router]);
+  }, [
+    isCheckoutOpen,
+    hasFullAccess,
+    isUnlocked,
+    sdkReady,
+    closeCheckout,
+    refreshVipSession,
+    router,
+  ]);
 
-  if (!isCheckoutOpen) return null;
+  if (!isCheckoutOpen || hasFullAccess) return null;
 
   return (
     <div
@@ -215,50 +233,53 @@ export function CheckoutModal() {
 
         <div className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-surface px-3 py-1 text-xs font-semibold text-ink">
           <ShieldCheck className="h-3.5 w-3.5 text-accent" />
-          Acceso Total Vitalicio — Pago Único
+          Pase de Acceso Total Vitalicio · Pago Único
         </div>
 
         <h2
           id="checkout-modal-title"
           className="mt-3 font-serif text-3xl font-semibold text-ink"
         >
-          Desbloquear Biblioteca Completa
+          Desbloquear Toda la Biblioteca
         </h2>
 
-        {selectedArtworkTitle && (
+        {selectedArtworkTitle ? (
           <p className="mt-1 text-xs font-medium text-ink/75">
-            Obra seleccionada:{' '}
+            Incluye{' '}
             <span className="font-semibold text-ink">{selectedArtworkTitle}</span>{' '}
-            (incluida junto a todo el banco de arte).
+            + todas las obras 4K, prompts y manuales del catálogo.
+          </p>
+        ) : (
+          <p className="mt-1 text-xs font-medium text-ink/75">
+            Un solo pago desbloquea todo el sitio de forma permanente en tu cuenta de Google.
           </p>
         )}
 
         <div className="mt-5 rounded-xl border border-ink/15 bg-surface/80 p-4">
           <div className="flex items-baseline justify-between">
             <span className="text-sm font-semibold text-ink">
-              Licencia Vitalicia ArteDigital.click
+              Pase Total ArteDigital.click (Todo Incluido)
             </span>
             <span className="font-serif text-2xl font-bold text-accent">
-              $20.00 USD
+              $25.00 USD
             </span>
           </div>
           <ul className="mt-3 space-y-1.5 text-xs text-ink/85">
             <li className="flex items-center gap-2">
               <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-accent" />
-              Descarga ilimitada en alta resolución SIN marca de agua.
+              Descarga ilimitada de TODAS las obras en 4K sin marca de agua.
             </li>
             <li className="flex items-center gap-2">
               <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-accent" />
-              Acceso íntegro a todos los prompts y parámetros técnicos.
+              Acceso completo a todos los prompts exactos y parámetros técnicos.
             </li>
             <li className="flex items-center gap-2">
               <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-accent" />
-              Manuales PDF de Consistencia de Personajes incluidos.
+              Todos los Manuales PDF/ZIP de Consistencia de Personajes incluidos.
             </li>
             <li className="flex items-center gap-2">
               <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-accent" />
-              Código único <code className="font-mono font-semibold">AD-XXXX-XXXX</code>{' '}
-              inmediato tras el pago.
+              Acceso directo con Google OAuth (sin claves ni suscripciones).
             </li>
           </ul>
         </div>
@@ -269,21 +290,46 @@ export function CheckoutModal() {
               htmlFor="checkout-email"
               className="block text-xs font-semibold uppercase tracking-wider text-ink/80"
             >
-              1. Tu Correo Electrónico (para emitir tu licencia)
+              1. Cuenta de Google donde activar tu Pase Total
             </label>
-            <input
-              id="checkout-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="ejemplo@tudominio.com"
-              required
-              className="mt-1.5 w-full rounded-xl border border-ink/25 bg-white px-4 py-3 text-sm text-ink placeholder:text-ink/45 focus:border-accent focus:outline-none"
-            />
-            {email.length > 0 && !isEmailValid && (
-              <p className="mt-1 text-xs text-accent">
-                Introduce un correo electrónico válido.
-              </p>
+
+            {googleUser?.email && !editingCustomEmail ? (
+              <div className="mt-1.5 flex items-center justify-between rounded-xl border border-ink/25 bg-white px-4 py-3 text-xs text-ink">
+                <div className="flex items-center gap-2 truncate">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />
+                  <span className="truncate font-semibold">{googleUser.email}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingCustomEmail(true)}
+                  className="ml-3 shrink-0 font-semibold text-accent underline"
+                >
+                  Cambiar
+                </button>
+              </div>
+            ) : (
+              <div className="mt-2 space-y-2.5">
+                {!googleUser && (
+                  <GoogleSignInButton
+                    nextPath="/?checkout=1"
+                    label="Conectar mi cuenta de Google (1 clic)"
+                  />
+                )}
+                <input
+                  id="checkout-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="tucorreo@gmail.com"
+                  required
+                  className="w-full rounded-xl border border-ink/25 bg-white px-4 py-3 text-sm text-ink placeholder:text-ink/45 focus:border-accent focus:outline-none"
+                />
+                {email.length > 0 && !isEmailValid && (
+                  <p className="text-xs text-accent">
+                    Introduce un correo electrónico válido.
+                  </p>
+                )}
+              </div>
             )}
           </div>
 
@@ -312,9 +358,9 @@ export function CheckoutModal() {
                 Política de Reembolsos
               </Link>
               . Entiendo que estoy adquiriendo acceso inmediato a bienes digitales
-              intangibles (arte sin marca de agua, prompts y manuales) y que, una vez
-              otorgado el acceso o generada mi licencia, la venta es final y no
-              aplican reembolsos.
+              intangibles (arte en alta resolución sin marca de agua, prompts y
+              manuales) y que, una vez habilitado mi acceso digital, la venta es
+              final y no aplican reembolsos.
             </span>
           </label>
         </div>
@@ -334,7 +380,7 @@ export function CheckoutModal() {
             <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-ink/20 bg-surface/60 py-6 text-center">
               <Loader2 className="h-6 w-6 animate-spin text-accent" />
               <p className="text-xs font-semibold text-ink">
-                Verificando captura en PayPal y generando tu código AD-XXXX-XXXX...
+                Confirmando pago con PayPal y desbloqueando toda la biblioteca...
               </p>
             </div>
           ) : !isUnlocked ? (
@@ -344,14 +390,14 @@ export function CheckoutModal() {
               className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-ink/20 bg-surface-blue px-4 py-3.5 text-sm font-semibold text-ink/50"
             >
               <Lock className="h-4 w-4" />
-              Ingresa tu correo y acepta los términos para pagar con PayPal
+              Confirma tu correo y acepta los términos para pagar con PayPal
             </button>
           ) : (
             <div>
               {!sdkReady && (
                 <div className="flex items-center justify-center gap-2 rounded-xl border border-ink/15 bg-surface/50 py-4 text-xs text-ink">
                   <Loader2 className="h-4 w-4 animate-spin text-accent" />
-                  Cargando pasarela segura de PayPal...
+                  Cargando pasarela oficial de PayPal...
                 </div>
               )}
               <div ref={paypalContainerRef} className="min-h-[48px]" />
@@ -359,16 +405,18 @@ export function CheckoutModal() {
           )}
         </div>
 
-        <div className="mt-5 flex items-center justify-between border-t border-ink/15 pt-4 text-xs text-ink/75">
-          <span>¿Ya tienes un código AD-XXXX-XXXX?</span>
-          <button
-            type="button"
-            onClick={openLogin}
-            className="font-semibold text-accent underline"
-          >
-            Ingresar como Miembro
-          </button>
-        </div>
+        {!googleUser && (
+          <div className="mt-5 flex items-center justify-between border-t border-ink/15 pt-4 text-xs text-ink/75">
+            <span>¿Ya adquiriste tu acceso anteriormente?</span>
+            <button
+              type="button"
+              onClick={() => signInWithGoogle('/vip')}
+              className="font-semibold text-accent underline"
+            >
+              Entrar con Google
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

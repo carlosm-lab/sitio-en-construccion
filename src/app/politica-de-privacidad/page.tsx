@@ -1,11 +1,12 @@
 import React from 'react';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { SITE_URL } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Política de Privacidad y Seguridad de Datos',
   description:
-    'Política transparente de recolección de correo electrónico, registros de transacción PayPal, dirección IP y auditoría de acceso en ArteDigital.click.',
+    'Política transparente de recolección de correo electrónico, autenticación Google OAuth, registros de transacción PayPal, dirección IP y auditoría de acceso en ArteDigital.click.',
   alternates: {
     canonical: `${SITE_URL}/politica-de-privacidad`,
   },
@@ -29,16 +30,15 @@ export default function PoliticaPrivacidadPage() {
             </h2>
             <p className="mt-2">
               En <strong>ArteDigital.click</strong> recolectamos únicamente la
-              información indispensable para emitir tu licencia vitalicia,
-              autenticar tu acceso al Área VIP y proteger la integridad de la
-              plataforma frente a fraudes electrónicos:
+              información indispensable para emitir tu Pase de Acceso Total,
+              autenticar tu sesión mediante Google OAuth y proteger la integridad
+              de la plataforma frente a fraudes electrónicos:
             </p>
             <ul className="mt-3 list-disc space-y-1.5 pl-5">
               <li>
                 <strong>Dirección de correo electrónico / Google OAuth:</strong>{' '}
-                utilizada para vincular y recuperar tu Código de Miembro (
-                <code>AD-XXXX-XXXX</code>), autenticar sesiones seguras y enviarte
-                soporte técnico.
+                utilizada para vincular tu membresía vitalicia, autenticar
+                sesiones seguras en un clic y brindarte soporte técnico.
               </li>
               <li>
                 <strong>Datos de transacción PayPal:</strong> identificador de
@@ -50,7 +50,7 @@ export default function PoliticaPrivacidadPage() {
                 <strong>Registros técnicos de seguridad (Logs Forenses):</strong>{' '}
                 dirección IP (obtenida mediante cabeceras de red seguras), User-Agent
                 del navegador, fecha/hora exacta de aceptación de términos y
-                registro de descargas de archivos dentro del panel VIP.
+                registro de descargas de archivos dentro de la plataforma.
               </li>
             </ul>
           </section>
@@ -62,9 +62,9 @@ export default function PoliticaPrivacidadPage() {
             <p className="mt-2">
               El almacenamiento de la dirección IP y los timestamps de actividad se
               fundamenta en el interés legítimo de seguridad informática,
-              validación de licencias de software/arte digital, prevención de
-              accesos compartidos no autorizados y acreditación fehaciente de
-              entrega digital ante pasarelas de pago como PayPal.
+              validación de licencias de arte digital, prevención de accesos
+              compartidos no autorizados y acreditación fehaciente de entrega
+              digital ante pasarelas de pago como PayPal.
             </p>
           </section>
 
@@ -88,10 +88,11 @@ export default function PoliticaPrivacidadPage() {
             </h2>
             <p className="mt-2">
               Para ejercer derechos de acceso, rectificación o consulta sobre los
-              datos vinculados a tu licencia, puedes escribir en cualquier momento a{' '}
-              <a href="mailto:soporte@artedigital.click" className="text-accent underline">
-                soporte@artedigital.click
-              </a>
+              datos vinculados a tu cuenta, puedes enviar tu solicitud en cualquier
+              momento a través de nuestro{' '}
+              <Link href="/contacto" className="font-semibold text-accent underline">
+                Centro Oficial de Soporte y Contacto
+              </Link>
               .
             </p>
           </section>

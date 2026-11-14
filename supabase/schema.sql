@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS public.manuals (
 );
 
 -- ----------------------------------------------------------------------------
--- 4. TABLA: customers (Licencias Vitalicia $20.00 USD)
+-- 4. TABLA: customers (Pase de Acceso Total Vitalicio $25.00 USD)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.customers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS public.customers (
   license_code TEXT NOT NULL UNIQUE,
   paypal_order_id TEXT NOT NULL UNIQUE,
   paypal_payer_id TEXT,
-  amount_usd NUMERIC(10, 2) NOT NULL DEFAULT 20.00,
+  amount_usd NUMERIC(10, 2) NOT NULL DEFAULT 25.00,
   terms_version TEXT NOT NULL DEFAULT 'v1.0',
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

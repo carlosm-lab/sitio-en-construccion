@@ -21,9 +21,12 @@ export function GoogleSignInButton({
     setErrorMsg(null);
     try {
       const supabase = createSupabaseBrowserClient();
-      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(
-        nextPath
-      )}`;
+      if (typeof document !== 'undefined') {
+        document.cookie = `artedigital_oauth_next=${encodeURIComponent(
+          nextPath
+        )}; path=/; max-age=600; SameSite=Lax`;
+      }
+      const redirectTo = `${window.location.origin}/auth/callback`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {

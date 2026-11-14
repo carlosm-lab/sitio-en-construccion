@@ -3,10 +3,12 @@ import { ArtworkCategory, CategoryMeta } from '@/types';
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://www.artedigital.click';
 
-export const MEMBERSHIP_PRICE_USD = '20.00';
+export const MEMBERSHIP_PRICE_USD = '25.00';
+export const MEMBERSHIP_PRICE_DISPLAY = '$25 USD';
+export const MEMBERSHIP_PRICE_FULL_DISPLAY = '$25.00 USD';
 export const TERMS_VERSION = 'v1.0';
 export const PAYPAL_ITEM_DESCRIPTION =
-  'Licencia de Acceso Total - Librería y Prompts ArteDigital.click (Entrega Digital Inmediata)';
+  'Pase de Acceso Total Vitalicio - Galería 4K, Prompts y Manuales ArteDigital.click (Entrega Digital Inmediata)';
 
 export const BUCKET_WATERMARKED = 'watermarked-art';
 export const BUCKET_HIGHRES = 'vip-highres-art';

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isEmailAuthorizedAdmin } from '@/lib/admin-auth';
 import {
   findCustomerByCredentials,
   getFullArtworksWithSignedUrls,
@@ -8,8 +9,7 @@ import {
   isValidLicenseCodeFormat,
 } from '@/lib/data-store';
 import { checkRateLimit, extractClientForensicInfo } from '@/lib/request-info';
-import { createSupabaseServerClient } from '@/lib/supabase';
-import { resolveVipCustomer } from '@/lib/vip-auth';
+import { resolveServerAccess } from '@/lib/vip-auth';
 import {
   signVipSessionToken,
   VIP_COOKIE_NAME,
@@ -20,36 +20,29 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const resolved = await resolveVipCustomer(req);
-    if (!resolved) {
-      let oauthEmailWithoutLicense: string | null = null;
-      try {
-        const supabaseSsr = createSupabaseServerClient();
-        const {
-          data: { user },
-        } = await supabaseSsr.auth.getUser();
-        if (user?.email) {
-          oauthEmailWithoutLicense = user.email;
-        }
-      } catch {
-        // Sin sesión OAuth
-      }
-
+    const access = await resolveServerAccess(req);
+    if (!access.hasFullAccess || !access.customer) {
       return NextResponse.json(
         {
           authenticated: false,
-          oauthEmailWithoutLicense,
+          hasFullAccess: false,
+          isAdmin: false,
+          googleUser: access.googleUser,
+          oauthEmailWithoutLicense: access.googleUser?.email || null,
         },
-        { status: 401 }
+        { status: 200 }
       );
     }
 
-    const { customer, via } = resolved;
+    const { customer, via, isAdmin, hasCustomerRow, googleUser } = access;
     const isSummaryOnly = req.nextUrl.searchParams.get('summary') === '1';
 
     if (isSummaryOnly) {
       const summaryResponse = NextResponse.json({
         authenticated: true,
+        hasFullAccess: true,
+        isAdmin,
+        googleUser,
         customer: {
           email: customer.email,
           license_code: customer.license_code,
@@ -57,7 +50,7 @@ export async function GET(req: NextRequest) {
         },
       });
 
-      if (via === 'google_oauth') {
+      if (via === 'google_oauth' || via === 'admin') {
         const token = signVipSessionToken({
           email: customer.email,
           licenseCode: customer.license_code,
@@ -75,21 +68,21 @@ export async function GET(req: NextRequest) {
       return summaryResponse;
     }
 
-    if (via === 'google_oauth') {
+    if (via === 'google_oauth' || via === 'admin') {
       const forensic = extractClientForensicInfo(req);
       await insertAuditLog({
-        customerId: customer.id,
-        paypalOrderId: customer.paypal_order_id,
+        customerId: hasCustomerRow ? customer.id : null,
+        paypalOrderId: hasCustomerRow ? customer.paypal_order_id : null,
         ipAddress: forensic.ipAddress,
         userAgent: forensic.userAgent,
         action: 'VIP_LOGIN',
         metadata: {
           license_code: customer.license_code,
           email: customer.email,
-          access_type: 'GOOGLE_OAUTH_VIP',
+          access_type: via === 'admin' ? 'GOOGLE_OAUTH_ADMIN' : 'GOOGLE_OAUTH_VIP',
           vercel_country: forensic.vercelCountry,
         },
-      });
+      }).catch(() => {});
     }
 
     const [artworks, manuals] = await Promise.all([
@@ -99,6 +92,9 @@ export async function GET(req: NextRequest) {
 
     const response = NextResponse.json({
       authenticated: true,
+      hasFullAccess: true,
+      isAdmin,
+      googleUser,
       customer: {
         email: customer.email,
         license_code: customer.license_code,
@@ -108,7 +104,7 @@ export async function GET(req: NextRequest) {
       manuals,
     });
 
-    if (via === 'google_oauth') {
+    if (via === 'google_oauth' || via === 'admin') {
       const token = signVipSessionToken({
         email: customer.email,
         licenseCode: customer.license_code,
@@ -161,7 +157,7 @@ export async function POST(req: NextRequest) {
 
     if (!email || !licenseCode) {
       return NextResponse.json(
-        { error: 'Ingresa tu correo y código de licencia (formato AD-XXXX-XXXX).' },
+        { error: 'Datos de acceso incompletos.' },
         { status: 400 }
       );
     }
@@ -169,8 +165,7 @@ export async function POST(req: NextRequest) {
     if (!isValidCleanEmail(email) || !isValidLicenseCodeFormat(licenseCode)) {
       return NextResponse.json(
         {
-          error:
-            'Formato de correo o código de licencia inválido. Usa el formato AD-XXXX-XXXX.',
+          error: 'Formato de credenciales inválido.',
         },
         { status: 400 }
       );
@@ -181,7 +176,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            'No encontramos una licencia activa que coincida con ese correo y código. Verifica tus datos o escríbenos a soporte@artedigital.click.',
+            'No encontramos un Pase de Acceso Total activo con esos datos. Inicia sesión directamente con tu cuenta de Google o escríbenos en la sección de Contacto.',
         },
         { status: 401 }
       );
@@ -200,9 +195,10 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const [artworks, manuals] = await Promise.all([
+    const [artworks, manuals, isAdmin] = await Promise.all([
       getFullArtworksWithSignedUrls(),
       getManuals(true),
+      isEmailAuthorizedAdmin(customer.email),
     ]);
 
     const token = signVipSessionToken({
@@ -213,6 +209,8 @@ export async function POST(req: NextRequest) {
 
     const response = NextResponse.json({
       authenticated: true,
+      hasFullAccess: true,
+      isAdmin,
       customer: {
         email: customer.email,
         license_code: customer.license_code,
@@ -234,7 +232,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Error POST /api/vip/verify:', error);
     return NextResponse.json(
-      { error: 'Error validando licencia.' },
+      { error: 'Error validando acceso.' },
       { status: 500 }
     );
   }

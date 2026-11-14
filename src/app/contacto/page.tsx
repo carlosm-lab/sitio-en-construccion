@@ -7,7 +7,7 @@ export default function ContactoPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [licenseCode, setLicenseCode] = useState('');
-  const [subject, setSubject] = useState('Soporte de Licencia VIP');
+  const [subject, setSubject] = useState('Soporte de Acceso con Google');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -56,27 +56,22 @@ export default function ContactoPage() {
             Contacto y Soporte
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-ink/80">
-            ¿Necesitas asistencia para recuperar tu código{' '}
-            <code className="rounded bg-surface px-1.5 py-0.5 font-mono text-xs">
-              AD-XXXX-XXXX
-            </code>
-            , consultar parámetros técnicos o verificar tu orden de PayPal?
+            ¿Necesitas asistencia para vincular tu cuenta de Google, consultar
+            parámetros técnicos de renderizado o verificar tu orden de PayPal?
           </p>
 
           <div className="mt-6 rounded-2xl border border-ink/20 bg-surface/75 p-5">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-ink/70">
               <Mail className="h-4 w-4 text-accent" />
-              Correo Directo de Soporte
+              Sistema Directo de Tickets
             </div>
-            <a
-              href="mailto:soporte@artedigital.click"
-              className="mt-2 block text-base font-semibold text-accent underline"
-            >
-              soporte@artedigital.click
-            </a>
-            <p className="mt-2 text-xs text-ink/75">
-              Horario de atención: Lunes a Viernes · Respuesta habitual menor a
-              24 horas hábiles.
+            <p className="mt-2 text-sm font-semibold text-ink">
+              Atención directa al correo asociado a tu cuenta
+            </p>
+            <p className="mt-1.5 text-xs text-ink/75">
+              Envía tu consulta mediante este formulario y nuestro equipo te
+              responderá directamente a tu correo electrónico en menos de 24
+              horas hábiles.
             </p>
           </div>
         </div>
@@ -129,14 +124,14 @@ export default function ContactoPage() {
                   htmlFor="contact-code"
                   className="block text-xs font-semibold uppercase tracking-wider text-ink/80"
                 >
-                  Código u Orden PayPal (Opcional)
+                  ID de Orden PayPal (Opcional)
                 </label>
                 <input
                   id="contact-code"
                   type="text"
                   value={licenseCode}
                   onChange={(e) => setLicenseCode(e.target.value.toUpperCase())}
-                  placeholder="AD-XXXX-XXXX"
+                  placeholder="Ej. 5O190127TN364715T"
                   className="mt-1.5 w-full rounded-xl border border-ink/25 bg-white px-4 py-3 font-mono text-sm uppercase text-ink focus:border-accent focus:outline-none"
                 />
               </div>
@@ -154,10 +149,10 @@ export default function ContactoPage() {
                   onChange={(e) => setSubject(e.target.value)}
                   className="mt-1.5 w-full rounded-xl border border-ink/25 bg-white px-4 py-3 text-sm text-ink focus:border-accent focus:outline-none"
                 >
-                  <option>Soporte de Licencia VIP</option>
-                  <option>Recuperación de Código</option>
+                  <option>Soporte de Acceso con Google</option>
                   <option>Consulta de Facturación PayPal</option>
                   <option>Soporte Técnico de Prompts</option>
+                  <option>Consulta General</option>
                 </select>
               </div>
             </div>

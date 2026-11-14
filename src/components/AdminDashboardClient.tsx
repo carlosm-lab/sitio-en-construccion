@@ -33,6 +33,7 @@ import {
   detectPdfPageCount,
   generateWatermarkedImageFile,
 } from '@/lib/watermark-client';
+import { useGalleryModal } from './GalleryContext';
 
 interface DisputeEvidenceResult {
   customer: CustomerRecord | null;
@@ -55,6 +56,7 @@ export function AdminDashboardClient({
   initialSupportMessages,
 }: AdminDashboardClientProps) {
   const router = useRouter();
+  const { signOut } = useGalleryModal();
 
   const [customers, setCustomers] = useState<CustomerRecord[]>(initialCustomers);
   const [artworks, setArtworks] = useState<ArtworkFull[]>(initialArtworks);
@@ -116,8 +118,7 @@ export function AdminDashboardClient({
   }, []);
 
   const handleSignOut = async () => {
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signOut();
+    await signOut();
     router.refresh();
   };
 
@@ -926,9 +927,9 @@ export function AdminDashboardClient({
               </h2>
             </div>
             <p className="mt-1 text-xs text-ink/75">
-              Busca por Código de Miembro (<code>AD-XXXX-XXXX</code>), ID de Orden
-              PayPal o correo del comprador para verificar validez y generar el
-              reporte PDF oficial.
+              Busca por correo de Google del comprador, ID de Orden PayPal o
+              referencia interna para verificar validez y generar el reporte PDF
+              oficial.
             </p>
 
             <form onSubmit={handleLookupDispute} className="mt-4 flex gap-2">
@@ -936,7 +937,7 @@ export function AdminDashboardClient({
                 type="text"
                 value={lookupQuery}
                 onChange={(e) => setLookupQuery(e.target.value)}
-                placeholder="Ej. AD-8X4P-9K2M, Order ID PayPal o email..."
+                placeholder="Ej. comprador@gmail.com o ID de Orden PayPal..."
                 className="flex-1 rounded-xl border border-ink/25 bg-white px-4 py-2.5 text-sm text-ink focus:border-accent focus:outline-none"
               />
               <button

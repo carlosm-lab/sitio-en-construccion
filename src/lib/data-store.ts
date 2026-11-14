@@ -13,6 +13,7 @@ import {
   BUCKET_HIGHRES,
   BUCKET_MANUALS,
   BUCKET_WATERMARKED,
+  MEMBERSHIP_PRICE_USD,
 } from './constants';
 import { getSupabaseAdmin } from './supabase';
 
@@ -155,14 +156,22 @@ export async function getPublicArtworkBySlug(slug: string): Promise<ArtworkPubli
 }
 
 /**
- * Obtiene obras completas con Signed URLs temporales (1 hora) para clientes VIP autenticados.
+ * Obtiene obras completas con Signed URLs temporales (1 hora) para miembros con acceso total o administradores.
  */
-export async function getFullArtworksWithSignedUrls(): Promise<ArtworkFull[]> {
+export async function getFullArtworksWithSignedUrls(
+  category?: ArtworkCategory
+): Promise<ArtworkFull[]> {
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
+  let query = supabase
     .from('artworks')
     .select('*')
     .order('created_at', { ascending: false });
+
+  if (category) {
+    query = query.eq('category', category);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('Error leyendo artworks VIP:', error.message);
@@ -188,6 +197,40 @@ export async function getFullArtworksWithSignedUrls(): Promise<ArtworkFull[]> {
     ...item,
     high_res_signed_url: signedMap.get(item.high_res_path) || item.watermarked_url,
   }));
+}
+
+export async function getFullArtworkBySlugWithSignedUrl(
+  slug: string
+): Promise<ArtworkFull | null> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('artworks')
+    .select('*')
+    .eq('slug', slug)
+    .maybeSingle();
+
+  if (error) {
+    console.error(`Error leyendo obra completa "${slug}":`, error.message);
+    throw new Error('No se pudo consultar la obra solicitada.');
+  }
+
+  if (!data) return null;
+  const item = data as ArtworkFull;
+
+  if (item.high_res_path) {
+    const { data: signed } = await supabase.storage
+      .from(BUCKET_HIGHRES)
+      .createSignedUrl(item.high_res_path, 3600);
+    if (signed?.signedUrl) {
+      item.high_res_signed_url = signed.signedUrl;
+    }
+  }
+
+  if (!item.high_res_signed_url) {
+    item.high_res_signed_url = item.watermarked_url;
+  }
+
+  return item;
 }
 
 export async function getAllArtworksAdmin(): Promise<ArtworkFull[]> {
@@ -623,7 +666,7 @@ export async function upsertCustomerAfterPayment(params: {
       license_code: licenseCode,
       paypal_order_id: params.paypalOrderId,
       paypal_payer_id: params.paypalPayerId,
-      amount_usd: 20.0,
+      amount_usd: parseFloat(MEMBERSHIP_PRICE_USD),
       terms_version: params.termsVersion,
       is_active: true,
     })

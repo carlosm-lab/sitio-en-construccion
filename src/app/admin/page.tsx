@@ -55,7 +55,7 @@ export default async function AdminPage({
           {(auth.status === 403 || searchParams?.auth_error) && (
             <div className="mt-4 rounded-xl border border-accent/50 bg-canvas p-3.5 text-xs text-ink">
               {auth.status === 403
-                ? 'La cuenta seleccionada no cuenta con permisos de administración. Se ha cerrado la sesión automáticamente.'
+                ? `La cuenta conectada (${auth.email || 'actual'}) no tiene permisos de administración. Selecciona una cuenta de Google autorizada.`
                 : 'No se pudo completar el inicio de sesión. Intenta nuevamente con una cuenta autorizada.'}
             </div>
           )}

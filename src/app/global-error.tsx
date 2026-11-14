@@ -49,8 +49,8 @@ export default function GlobalError({
             ArteDigital.click encontró un error inesperado
           </h1>
           <p style={{ fontSize: '14px', lineHeight: 1.6, opacity: 0.85 }}>
-            Por favor recarga la aplicación. Si el problema persiste, contáctanos
-            en soporte@artedigital.click.
+            Por favor recarga la aplicación. Si el problema persiste, escríbenos
+            desde el formulario oficial en /contacto.
           </p>
           {error.digest && (
             <p style={{ fontSize: '11px', fontFamily: 'monospace', opacity: 0.65 }}>
