@@ -10,12 +10,14 @@ interface VipCookiePayload {
 }
 
 function getSigningSecret(): string {
-  return (
+  const secret =
     process.env.VIP_SESSION_SECRET ||
-    process.env.ADMIN_SECRET_PASSWORD ||
-    process.env.PAYPAL_CLIENT_SECRET ||
-    'artedigital-default-hmac-key'
-  );
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.PAYPAL_CLIENT_SECRET;
+  if (!secret) {
+    throw new Error('VIP_SESSION_SECRET no configurado en el servidor.');
+  }
+  return secret;
 }
 
 export function signVipSessionToken(payload: VipCookiePayload): string {

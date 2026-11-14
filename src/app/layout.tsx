@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
-import { SITE_URL } from '@/lib/seed-data';
+import { SITE_URL } from '@/lib/constants';
 import { GalleryProvider } from '@/components/GalleryContext';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     siteName: 'ArteDigital.click',
     title: 'ArteDigital.click | Banco de Arte IA y Prompts Profesionales',
     description:
-      'Desbloquea +1,000 obras digitales en alta resolución sin marca de agua, prompts verificados y manuales de consistencia de personajes por un pago único de $20 USD.',
+      'Desbloquea obras digitales en alta resolución sin marca de agua, prompts verificados y manuales de consistencia de personajes por un pago único de $20 USD.',
   },
   robots: {
     index: true,

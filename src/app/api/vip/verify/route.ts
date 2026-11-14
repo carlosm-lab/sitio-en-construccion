@@ -1,30 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   findCustomerByCredentials,
-  getFullArtworks,
+  getFullArtworksWithSignedUrls,
   getManuals,
   insertAuditLog,
 } from '@/lib/data-store';
 import { extractClientForensicInfo } from '@/lib/request-info';
-import {
-  getVipSessionFromRequest,
-  signVipSessionToken,
-  VIP_COOKIE_NAME,
-} from '@/lib/vip-session';
+import { resolveVipCustomer } from '@/lib/vip-auth';
+import { signVipSessionToken, VIP_COOKIE_NAME } from '@/lib/vip-session';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = getVipSessionFromRequest(req);
-    if (!session) {
+    const resolved = await resolveVipCustomer(req);
+    if (!resolved) {
       return NextResponse.json({ authenticated: false }, { status: 401 });
     }
 
-    const customer = await findCustomerByCredentials(session.email, session.licenseCode);
-    if (!customer) {
-      return NextResponse.json({ authenticated: false }, { status: 401 });
-    }
-
+    const { customer, via } = resolved;
     const forensic = extractClientForensicInfo(req);
+
     await insertAuditLog({
       customerId: customer.id,
       paypalOrderId: customer.paypal_order_id,
@@ -34,12 +28,12 @@ export async function GET(req: NextRequest) {
       metadata: {
         license_code: customer.license_code,
         email: customer.email,
-        access_type: 'SESSION_RESTORE',
+        access_type: via === 'google_oauth' ? 'GOOGLE_OAUTH_VIP' : 'SESSION_RESTORE',
       },
     });
 
     const [artworks, manuals] = await Promise.all([
-      getFullArtworks(),
+      getFullArtworksWithSignedUrls(),
       getManuals(true),
     ]);
 
@@ -56,7 +50,10 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error('Error GET /api/vip/verify:', error);
-    return NextResponse.json({ error: 'Error verificando sesión VIP.' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Error verificando sesión VIP.' },
+      { status: 500 }
+    );
   }
 }
 
@@ -64,7 +61,10 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => null);
     if (!body || typeof body !== 'object') {
-      return NextResponse.json({ error: 'Datos de acceso inválidos.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Datos de acceso inválidos.' },
+        { status: 400 }
+      );
     }
 
     const { email, licenseCode } = body as { email?: string; licenseCode?: string };
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     });
 
     const [artworks, manuals] = await Promise.all([
-      getFullArtworks(),
+      getFullArtworksWithSignedUrls(),
       getManuals(true),
     ]);
 

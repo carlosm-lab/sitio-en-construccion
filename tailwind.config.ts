@@ -11,10 +11,13 @@ const config: Config = {
       transparent: 'transparent',
       current: 'currentColor',
       inherit: 'inherit',
-      // Regla estricta de 3 colores pastel (60% / 30% / 10%)
-      canvas: '#FAF7F2',  // 60% Alabastro Cálido Pastel (Lienzo y fondo principal)
-      surface: '#DCE8E2', // 30% Verde Salvia Pastel (Tarjetas, cabeceras, badges, contenedores)
-      ink: '#2C3E4C',     // 10% Pizarra Profundo Sobrio (Tipografía, iconos, CTAs y contrastes)
+      // Paleta Azul Pastel Principal + Complementarios Pastel
+      canvas: '#EAF4FB',     // Principal (60%): Azul Pastel Luminoso
+      surface: '#F9E6D8',    // Secundario (30%): Melocotón / Arena Pastel (complementario directo del azul)
+      'surface-blue': '#D5E9F7', // Azul Pastel Suave secundario para contenedores y bordes
+      ink: '#16324F',        // Tipografía y contraste: Azul Marino Profundo Sobrio
+      accent: '#C86D51',     // Acento (10%): Coral / Terracota Complementario para CTAs y estados activos
+      white: '#FFFFFF',
     },
     extend: {
       fontFamily: {

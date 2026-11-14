@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { SITE_URL } from '@/lib/seed-data';
+import { SITE_URL } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Política de Reembolsos — Bienes Digitales Intangibles',
@@ -14,8 +14,8 @@ export const metadata: Metadata = {
 export default function PoliticaReembolsosPage() {
   return (
     <article className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-      <div className="rounded-3xl border border-ink/15 bg-surface/50 p-8 sm:p-12">
-        <span className="text-xs font-bold uppercase tracking-widest text-ink/65">
+      <div className="rounded-3xl border border-ink/15 bg-surface/65 p-8 sm:p-12">
+        <span className="text-xs font-bold uppercase tracking-widest text-accent">
           Cumplimiento PayPal Digital Goods · Versión v1.0
         </span>
         <h1 className="mt-2 font-serif text-4xl font-semibold text-ink">
@@ -66,7 +66,7 @@ export default function PoliticaReembolsosPage() {
               comprobable y atribuible a los servidores de ArteDigital.click que
               impida de forma absoluta la entrega de la licencia o el acceso a los
               archivos tras haber contactado a{' '}
-              <a href="mailto:soporte@artedigital.click" className="underline">
+              <a href="mailto:soporte@artedigital.click" className="text-accent underline">
                 soporte@artedigital.click
               </a>{' '}
               y no haberse resuelto la incidencia técnica en un plazo de 72 horas

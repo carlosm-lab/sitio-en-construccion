@@ -4,7 +4,7 @@ import { ShieldCheck } from 'lucide-react';
 
 export function Footer() {
   return (
-    <footer className="mt-20 border-t border-ink/15 bg-surface/60 text-ink no-print">
+    <footer className="mt-20 border-t border-ink/15 bg-surface/65 text-ink no-print">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-10 md:grid-cols-4">
           <div className="md:col-span-1">
@@ -16,7 +16,7 @@ export function Footer() {
               avanzados y manuales técnicos para creación de personajes consistentes.
             </p>
             <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-ink/20 bg-canvas px-3 py-1 text-xs font-medium text-ink">
-              <ShieldCheck className="h-3.5 w-3.5" />
+              <ShieldCheck className="h-3.5 w-3.5 text-accent" />
               Entrega Digital Verificada
             </div>
           </div>
@@ -27,22 +27,22 @@ export function Footer() {
             </h3>
             <ul className="mt-4 space-y-2.5 text-sm">
               <li>
-                <Link href="/categoria/retratos-ia" className="hover:underline">
+                <Link href="/categoria/retratos-ia" className="hover:text-accent hover:underline">
                   Retratos IA Editoriales
                 </Link>
               </li>
               <li>
-                <Link href="/categoria/concept-art" className="hover:underline">
+                <Link href="/categoria/concept-art" className="hover:text-accent hover:underline">
                   Concept Art Minimalista
                 </Link>
               </li>
               <li>
-                <Link href="/categoria/guias-personajes" className="hover:underline">
+                <Link href="/categoria/guias-personajes" className="hover:text-accent hover:underline">
                   Guías de Consistencia
                 </Link>
               </li>
               <li>
-                <Link href="/vip" className="hover:underline">
+                <Link href="/vip" className="hover:text-accent hover:underline">
                   Panel VIP Miembros
                 </Link>
               </li>
@@ -55,22 +55,22 @@ export function Footer() {
             </h3>
             <ul className="mt-4 space-y-2.5 text-sm">
               <li>
-                <Link href="/terminos-y-condiciones" className="hover:underline">
+                <Link href="/terminos-y-condiciones" className="hover:text-accent hover:underline">
                   Términos y Condiciones
                 </Link>
               </li>
               <li>
-                <Link href="/politica-de-reembolsos" className="hover:underline">
+                <Link href="/politica-de-reembolsos" className="hover:text-accent hover:underline">
                   Política de Reembolsos
                 </Link>
               </li>
               <li>
-                <Link href="/politica-de-privacidad" className="hover:underline">
+                <Link href="/politica-de-privacidad" className="hover:text-accent hover:underline">
                   Política de Privacidad
                 </Link>
               </li>
               <li>
-                <Link href="/contacto" className="hover:underline">
+                <Link href="/contacto" className="hover:text-accent hover:underline">
                   Contacto y Soporte
                 </Link>
               </li>
@@ -89,16 +89,16 @@ export function Footer() {
               o soporte técnico?
             </p>
             <p className="mt-2 text-sm font-semibold">
-              <a href="mailto:soporte@artedigital.click" className="underline">
+              <a href="mailto:soporte@artedigital.click" className="text-accent underline">
                 soporte@artedigital.click
               </a>
             </p>
             <div className="mt-4">
               <Link
                 href="/admin"
-                className="text-xs font-medium text-ink/60 underline hover:text-ink"
+                className="text-xs font-medium text-ink/70 underline hover:text-accent"
               >
-                Administración y Auditoría
+                Administración (Google OAuth)
               </Link>
             </div>
           </div>

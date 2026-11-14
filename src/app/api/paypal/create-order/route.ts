@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { insertAuditLog } from '@/lib/data-store';
 import { createPayPalOrder } from '@/lib/paypal';
 import { extractClientForensicInfo } from '@/lib/request-info';
-import { TERMS_VERSION } from '@/lib/seed-data';
+import { TERMS_VERSION } from '@/lib/constants';
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,7 +21,6 @@ export async function POST(req: NextRequest) {
       termsVersion?: string;
     };
 
-    // Validación estricta del servidor para el checkbox legal
     if (termsAccepted !== true || termsVersion !== TERMS_VERSION) {
       return NextResponse.json(
         {

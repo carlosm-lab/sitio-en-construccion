@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { SITE_URL } from '@/lib/seed-data';
+import { SITE_URL } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Términos y Condiciones de Uso y Licencia Digital',
@@ -14,8 +14,8 @@ export const metadata: Metadata = {
 export default function TerminosPage() {
   return (
     <article className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-      <div className="rounded-3xl border border-ink/15 bg-surface/50 p-8 sm:p-12">
-        <span className="text-xs font-bold uppercase tracking-widest text-ink/65">
+      <div className="rounded-3xl border border-ink/15 bg-surface/65 p-8 sm:p-12">
+        <span className="text-xs font-bold uppercase tracking-widest text-accent">
           Documento Legal v1.0 · Vigente 2026
         </span>
         <h1 className="mt-2 font-serif text-4xl font-semibold text-ink">
@@ -24,7 +24,7 @@ export default function TerminosPage() {
         <p className="mt-3 text-sm text-ink/75">
           Titular de la plataforma: <strong>ArteDigital.click</strong> ·
           Contacto oficial:{' '}
-          <a href="mailto:soporte@artedigital.click" className="underline">
+          <a href="mailto:soporte@artedigital.click" className="text-accent underline">
             soporte@artedigital.click
           </a>
         </p>

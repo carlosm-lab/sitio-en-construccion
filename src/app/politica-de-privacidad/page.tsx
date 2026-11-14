@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { SITE_URL } from '@/lib/seed-data';
+import { SITE_URL } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Política de Privacidad y Seguridad de Datos',
@@ -14,8 +14,8 @@ export const metadata: Metadata = {
 export default function PoliticaPrivacidadPage() {
   return (
     <article className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-      <div className="rounded-3xl border border-ink/15 bg-surface/50 p-8 sm:p-12">
-        <span className="text-xs font-bold uppercase tracking-widest text-ink/65">
+      <div className="rounded-3xl border border-ink/15 bg-surface/65 p-8 sm:p-12">
+        <span className="text-xs font-bold uppercase tracking-widest text-accent">
           Protección de Datos y Antifraude · Versión v1.0
         </span>
         <h1 className="mt-2 font-serif text-4xl font-semibold text-ink">
@@ -35,9 +35,10 @@ export default function PoliticaPrivacidadPage() {
             </p>
             <ul className="mt-3 list-disc space-y-1.5 pl-5">
               <li>
-                <strong>Dirección de correo electrónico:</strong> utilizada para
-                vincular y recuperar tu Código de Miembro (
-                <code>AD-XXXX-XXXX</code>) y enviarte soporte técnico.
+                <strong>Dirección de correo electrónico / Google OAuth:</strong>{' '}
+                utilizada para vincular y recuperar tu Código de Miembro (
+                <code>AD-XXXX-XXXX</code>), autenticar sesiones seguras y enviarte
+                soporte técnico.
               </li>
               <li>
                 <strong>Datos de transacción PayPal:</strong> identificador de
@@ -88,7 +89,7 @@ export default function PoliticaPrivacidadPage() {
             <p className="mt-2">
               Para ejercer derechos de acceso, rectificación o consulta sobre los
               datos vinculados a tu licencia, puedes escribir en cualquier momento a{' '}
-              <a href="mailto:soporte@artedigital.click" className="underline">
+              <a href="mailto:soporte@artedigital.click" className="text-accent underline">
                 soporte@artedigital.click
               </a>
               .

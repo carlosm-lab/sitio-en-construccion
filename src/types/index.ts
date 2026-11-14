@@ -14,7 +14,9 @@ export interface ArtworkPublic {
 
 export interface ArtworkFull extends ArtworkPublic {
   prompt_full: string;
-  high_res_url: string;
+  watermarked_path: string;
+  high_res_path: string;
+  high_res_signed_url?: string;
 }
 
 export interface ManualItem {
@@ -23,7 +25,8 @@ export interface ManualItem {
   description: string;
   pages_count: number;
   format: string;
-  file_url?: string;
+  file_path?: string;
+  file_name?: string;
   created_at: string;
 }
 
@@ -44,7 +47,8 @@ export type AuditAction =
   | 'PAYMENT_CAPTURED'
   | 'VIP_ACCESS_GRANTED'
   | 'VIP_LOGIN'
-  | 'ASSET_DOWNLOADED';
+  | 'ASSET_DOWNLOADED'
+  | 'ADMIN_ACTION';
 
 export interface AuditLogRecord {
   id: string;

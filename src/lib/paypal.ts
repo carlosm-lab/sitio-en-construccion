@@ -1,4 +1,4 @@
-import { MEMBERSHIP_PRICE_USD, PAYPAL_ITEM_DESCRIPTION } from './seed-data';
+import { MEMBERSHIP_PRICE_USD, PAYPAL_ITEM_DESCRIPTION } from './constants';
 
 type PayPalEnv = 'sandbox' | 'live';
 
@@ -18,11 +18,6 @@ export interface PayPalTokenResult {
   env: PayPalEnv;
 }
 
-/**
- * Obtiene token OAuth2 desde la API REST de PayPal v1/oauth2/token.
- * Si el entorno configurado falla por credenciales cruzadas (Sandbox vs Live),
- * prueba automáticamente el otro entorno oficial de PayPal.
- */
 export async function getPayPalAccessToken(): Promise<PayPalTokenResult> {
   const clientId = process.env.PAYPAL_CLIENT_ID;
   const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
@@ -70,9 +65,6 @@ export interface CreatePayPalOrderResponse {
   env: PayPalEnv;
 }
 
-/**
- * Crea una orden de $20.00 USD marcada como DIGITAL_GOODS y NO_SHIPPING.
- */
 export async function createPayPalOrder(buyerEmail: string): Promise<CreatePayPalOrderResponse> {
   const { accessToken, baseUrl, env } = await getPayPalAccessToken();
 
@@ -149,9 +141,6 @@ export interface CapturePayPalOrderResult {
   raw: Record<string, unknown>;
 }
 
-/**
- * Captura y verifica en el servidor que la orden alcanzó el estado COMPLETED.
- */
 export async function capturePayPalOrder(
   orderId: string
 ): Promise<CapturePayPalOrderResult> {

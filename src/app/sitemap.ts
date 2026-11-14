@@ -1,11 +1,11 @@
 import type { MetadataRoute } from 'next';
 import { getPublicArtworks } from '@/lib/data-store';
-import { CATEGORIES, SITE_URL } from '@/lib/seed-data';
+import { CATEGORIES, SITE_URL } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const artworks = await getPublicArtworks();
+  const artworks = await getPublicArtworks().catch(() => []);
   const now = new Date();
 
   const staticRoutes: MetadataRoute.Sitemap = [

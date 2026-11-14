@@ -42,7 +42,7 @@ export default function ContactoPage() {
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="grid gap-8 md:grid-cols-12">
         <div className="md:col-span-5">
-          <span className="text-xs font-bold uppercase tracking-widest text-ink/65">
+          <span className="text-xs font-bold uppercase tracking-widest text-accent">
             Atención al Cliente
           </span>
           <h1 className="mt-2 font-serif text-4xl font-semibold text-ink">
@@ -56,14 +56,14 @@ export default function ContactoPage() {
             , consultar parámetros técnicos o verificar tu orden de PayPal?
           </p>
 
-          <div className="mt-6 rounded-2xl border border-ink/20 bg-surface/65 p-5">
+          <div className="mt-6 rounded-2xl border border-ink/20 bg-surface/75 p-5">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-ink/70">
-              <Mail className="h-4 w-4" />
+              <Mail className="h-4 w-4 text-accent" />
               Correo Directo de Soporte
             </div>
             <a
               href="mailto:soporte@artedigital.click"
-              className="mt-2 block text-base font-semibold text-ink underline"
+              className="mt-2 block text-base font-semibold text-accent underline"
             >
               soporte@artedigital.click
             </a>
@@ -77,7 +77,7 @@ export default function ContactoPage() {
         <div className="md:col-span-7">
           <form
             onSubmit={handleSubmit}
-            className="space-y-4 rounded-3xl border border-ink/15 bg-surface/50 p-6 sm:p-8"
+            className="space-y-4 rounded-3xl border border-ink/15 bg-surface-blue/65 p-6 sm:p-8"
           >
             <div>
               <label
@@ -93,7 +93,7 @@ export default function ContactoPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="tu@correo.com"
-                className="mt-1.5 w-full rounded-xl border border-ink/25 bg-canvas px-4 py-3 text-sm text-ink focus:border-ink focus:outline-none"
+                className="mt-1.5 w-full rounded-xl border border-ink/25 bg-white px-4 py-3 text-sm text-ink focus:border-accent focus:outline-none"
               />
             </div>
 
@@ -111,7 +111,7 @@ export default function ContactoPage() {
                   value={licenseCode}
                   onChange={(e) => setLicenseCode(e.target.value.toUpperCase())}
                   placeholder="AD-XXXX-XXXX"
-                  className="mt-1.5 w-full rounded-xl border border-ink/25 bg-canvas px-4 py-3 font-mono text-sm uppercase text-ink focus:border-ink focus:outline-none"
+                  className="mt-1.5 w-full rounded-xl border border-ink/25 bg-white px-4 py-3 font-mono text-sm uppercase text-ink focus:border-accent focus:outline-none"
                 />
               </div>
 
@@ -126,7 +126,7 @@ export default function ContactoPage() {
                   id="contact-subject"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-ink/25 bg-canvas px-4 py-3 text-sm text-ink focus:border-ink focus:outline-none"
+                  className="mt-1.5 w-full rounded-xl border border-ink/25 bg-white px-4 py-3 text-sm text-ink focus:border-accent focus:outline-none"
                 >
                   <option>Soporte de Licencia VIP</option>
                   <option>Recuperación de Código</option>
@@ -150,19 +150,19 @@ export default function ContactoPage() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Describe brevemente tu consulta o número de orden de PayPal..."
-                className="mt-1.5 w-full rounded-xl border border-ink/25 bg-canvas px-4 py-3 text-sm text-ink focus:border-ink focus:outline-none"
+                className="mt-1.5 w-full rounded-xl border border-ink/25 bg-white px-4 py-3 text-sm text-ink focus:border-accent focus:outline-none"
               />
             </div>
 
             {errorMsg && (
-              <div className="rounded-xl border border-ink/30 bg-canvas p-3 text-xs font-medium text-ink">
+              <div className="rounded-xl border border-accent/45 bg-surface p-3 text-xs font-medium text-ink">
                 {errorMsg}
               </div>
             )}
 
             {feedback && (
               <div className="flex items-start gap-2 rounded-xl border border-ink/25 bg-canvas p-3.5 text-xs font-medium text-ink">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
                 <span>{feedback}</span>
               </div>
             )}
@@ -170,7 +170,7 @@ export default function ContactoPage() {
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-5 py-3.5 text-sm font-semibold text-canvas transition-opacity hover:opacity-90 disabled:opacity-60"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
             >
               {loading ? (
                 <>

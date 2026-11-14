@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Layers } from 'lucide-react';
 import { getPublicArtworks } from '@/lib/data-store';
-import { CATEGORIES, CATEGORY_MAP, SITE_URL } from '@/lib/seed-data';
+import { CATEGORIES, CATEGORY_MAP, SITE_URL } from '@/lib/constants';
 import { ArtworkCategory } from '@/types';
 import { GalleryExplorer } from '@/components/GalleryExplorer';
 import { UnlockPrimaryButton } from '@/components/HeroTriggerButtons';
@@ -71,17 +71,17 @@ export default async function CategoryPage({
 
       <Link
         href="/"
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink/75 hover:text-ink"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink/75 hover:text-accent"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         Volver al catálogo completo
       </Link>
 
-      <header className="mt-4 rounded-3xl border border-ink/15 bg-surface/55 p-8 sm:p-10">
+      <header className="mt-4 rounded-3xl border border-ink/15 bg-surface/75 p-8 sm:p-10">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
           <div className="max-w-2xl">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-ink/20 bg-canvas px-3 py-1 text-xs font-semibold text-ink">
-              <Layers className="h-3.5 w-3.5" />
+              <Layers className="h-3.5 w-3.5 text-accent" />
               Categoría Curada
             </span>
             <h1 className="mt-3 font-serif text-4xl font-semibold text-ink sm:text-5xl">

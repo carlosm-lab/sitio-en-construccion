@@ -56,7 +56,6 @@ export function CheckoutModal() {
   const isEmailValid = EMAIL_REGEX.test(email.trim());
   const isUnlocked = isEmailValid && termsAccepted;
 
-  // Cargar SDK oficial de PayPal cuando el modal abre
   useEffect(() => {
     if (!isCheckoutOpen) return;
 
@@ -96,7 +95,6 @@ export function CheckoutModal() {
     document.body.appendChild(script);
   }, [isCheckoutOpen]);
 
-  // Renderizar botones de PayPal solo cuando email válido + checkbox marcado
   useEffect(() => {
     if (!isCheckoutOpen || !isUnlocked || !sdkReady || !window.paypal) {
       return;
@@ -110,7 +108,7 @@ export function CheckoutModal() {
     const buttons = window.paypal.Buttons({
       style: {
         layout: 'vertical',
-        color: 'black',
+        color: 'blue',
         shape: 'rect',
         label: 'pay',
         height: 46,
@@ -193,7 +191,7 @@ export function CheckoutModal() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/45 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="checkout-modal-title"
@@ -209,7 +207,7 @@ export function CheckoutModal() {
         </button>
 
         <div className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-surface px-3 py-1 text-xs font-semibold text-ink">
-          <ShieldCheck className="h-3.5 w-3.5" />
+          <ShieldCheck className="h-3.5 w-3.5 text-accent" />
           Acceso Total Vitalicio — Pago Único
         </div>
 
@@ -228,38 +226,36 @@ export function CheckoutModal() {
           </p>
         )}
 
-        {/* Resumen de valor */}
-        <div className="mt-5 rounded-xl border border-ink/15 bg-surface/65 p-4">
+        <div className="mt-5 rounded-xl border border-ink/15 bg-surface/80 p-4">
           <div className="flex items-baseline justify-between">
             <span className="text-sm font-semibold text-ink">
               Licencia Vitalicia ArteDigital.click
             </span>
-            <span className="font-serif text-2xl font-bold text-ink">
+            <span className="font-serif text-2xl font-bold text-accent">
               $20.00 USD
             </span>
           </div>
-          <ul className="mt-3 space-y-1.5 text-xs text-ink/80">
+          <ul className="mt-3 space-y-1.5 text-xs text-ink/85">
             <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-ink" />
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-accent" />
               Descarga ilimitada en alta resolución SIN marca de agua.
             </li>
             <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-ink" />
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-accent" />
               Acceso íntegro a todos los prompts y parámetros técnicos.
             </li>
             <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-ink" />
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-accent" />
               Manuales PDF de Consistencia de Personajes incluidos.
             </li>
             <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-ink" />
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-accent" />
               Código único <code className="font-mono font-semibold">AD-XXXX-XXXX</code>{' '}
               inmediato tras el pago.
             </li>
           </ul>
         </div>
 
-        {/* Formulario de Validación Legal Pre-Pago */}
         <div className="mt-5 space-y-4">
           <div>
             <label
@@ -275,28 +271,28 @@ export function CheckoutModal() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="ejemplo@tudominio.com"
               required
-              className="mt-1.5 w-full rounded-xl border border-ink/25 bg-canvas px-4 py-3 text-sm text-ink placeholder:text-ink/45 focus:border-ink focus:outline-none"
+              className="mt-1.5 w-full rounded-xl border border-ink/25 bg-white px-4 py-3 text-sm text-ink placeholder:text-ink/45 focus:border-accent focus:outline-none"
             />
             {email.length > 0 && !isEmailValid && (
-              <p className="mt-1 text-xs text-ink/80">
+              <p className="mt-1 text-xs text-accent">
                 Introduce un correo electrónico válido.
               </p>
             )}
           </div>
 
-          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-ink/20 bg-surface/50 p-3.5 text-xs leading-relaxed text-ink">
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-ink/20 bg-surface-blue/65 p-3.5 text-xs leading-relaxed text-ink">
             <input
               type="checkbox"
               checked={termsAccepted}
               onChange={(e) => setTermsAccepted(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 accent-ink"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-accent"
             />
             <span>
               He leído y acepto los{' '}
               <Link
                 href="/terminos-y-condiciones"
                 target="_blank"
-                className="font-semibold underline"
+                className="font-semibold text-accent underline"
               >
                 Términos de Servicio
               </Link>{' '}
@@ -304,7 +300,7 @@ export function CheckoutModal() {
               <Link
                 href="/politica-de-reembolsos"
                 target="_blank"
-                className="font-semibold underline"
+                className="font-semibold text-accent underline"
               >
                 Política de Reembolsos
               </Link>
@@ -319,18 +315,17 @@ export function CheckoutModal() {
         {errorMsg && (
           <div
             role="alert"
-            className="mt-4 flex items-start gap-2 rounded-xl border border-ink/30 bg-surface p-3 text-xs font-medium text-ink"
+            className="mt-4 flex items-start gap-2 rounded-xl border border-accent/45 bg-surface p-3 text-xs font-medium text-ink"
           >
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
             <span>{errorMsg}</span>
           </div>
         )}
 
-        {/* Bloque de Pago PayPal */}
         <div className="mt-5">
           {isProcessing ? (
             <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-ink/20 bg-surface/60 py-6 text-center">
-              <Loader2 className="h-6 w-6 animate-spin text-ink" />
+              <Loader2 className="h-6 w-6 animate-spin text-accent" />
               <p className="text-xs font-semibold text-ink">
                 Verificando captura en PayPal y generando tu código AD-XXXX-XXXX...
               </p>
@@ -339,7 +334,7 @@ export function CheckoutModal() {
             <button
               type="button"
               disabled
-              className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-ink/20 bg-surface px-4 py-3.5 text-sm font-semibold text-ink/50"
+              className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-ink/20 bg-surface-blue px-4 py-3.5 text-sm font-semibold text-ink/50"
             >
               <Lock className="h-4 w-4" />
               Ingresa tu correo y acepta los términos para pagar con PayPal
@@ -348,7 +343,7 @@ export function CheckoutModal() {
             <div>
               {!sdkReady && (
                 <div className="flex items-center justify-center gap-2 rounded-xl border border-ink/15 bg-surface/50 py-4 text-xs text-ink">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin text-accent" />
                   Cargando pasarela segura de PayPal...
                 </div>
               )}
@@ -362,7 +357,7 @@ export function CheckoutModal() {
           <button
             type="button"
             onClick={openLogin}
-            className="font-semibold text-ink underline"
+            className="font-semibold text-accent underline"
           >
             Ingresar como Miembro
           </button>

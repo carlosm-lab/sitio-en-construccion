@@ -4,27 +4,27 @@
 
 @layer base {
   html {
-    background-color: #FAF7F2;
-    color: #2C3E4C;
+    background-color: #EAF4FB;
+    color: #16324F;
     scroll-behavior: smooth;
   }
 
   body {
-    background-color: #FAF7F2;
-    color: #2C3E4C;
+    background-color: #EAF4FB;
+    color: #16324F;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
   }
 }
 
-/* Utilidad de marca de agua sobre vista previa pública */
+/* Patrón de marca de agua sobre vista previa pública */
 .watermark-pattern {
   background-image: repeating-linear-gradient(
     -30deg,
     transparent,
     transparent 56px,
-    rgba(250, 247, 242, 0.24) 56px,
-    rgba(250, 247, 242, 0.24) 57px
+    rgba(234, 244, 251, 0.28) 56px,
+    rgba(234, 244, 251, 0.28) 57px
   );
 }
 
@@ -38,8 +38,8 @@
 /* Estilos de impresión para Reporte Forense Anti-Disputas en /admin */
 @media print {
   body {
-    background-color: #FAF7F2 !important;
-    color: #2C3E4C !important;
+    background-color: #FFFFFF !important;
+    color: #16324F !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
@@ -52,7 +52,7 @@
     width: 100% !important;
     max-width: none !important;
     margin: 0 !important;
-    padding: 0 !important;
-    border: 1px solid #2C3E4C !important;
+    padding: 16px !important;
+    border: 1px solid #16324F !important;
   }
 }

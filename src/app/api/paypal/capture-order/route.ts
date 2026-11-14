@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { insertAuditLog, upsertCustomerAfterPayment } from '@/lib/data-store';
 import { capturePayPalOrder } from '@/lib/paypal';
 import { extractClientForensicInfo } from '@/lib/request-info';
-import { TERMS_VERSION } from '@/lib/seed-data';
+import { TERMS_VERSION } from '@/lib/constants';
 import { signVipSessionToken, VIP_COOKIE_NAME } from '@/lib/vip-session';
 
 export async function POST(req: NextRequest) {
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 365, // 1 año
+      maxAge: 60 * 60 * 24 * 365,
     });
 
     return response;

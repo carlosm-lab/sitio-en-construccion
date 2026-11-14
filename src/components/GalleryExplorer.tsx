@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import Link from 'next/link';
+import { ImagePlus, Search } from 'lucide-react';
 import { ArtworkCategory, ArtworkPublic } from '@/types';
-import { CATEGORIES } from '@/lib/seed-data';
+import { CATEGORIES } from '@/lib/constants';
 import { ArtworkCard } from './ArtworkCard';
 
 interface GalleryExplorerProps {
@@ -40,9 +41,9 @@ export function GalleryExplorer({
   const hasMore = displayed.length < filtered.length;
 
   return (
-    <section id="galeria" className="mt-12">
+    <section id="galeria" className="mt-10">
       {showFilters && (
-        <div className="mb-8 flex flex-col justify-between gap-4 rounded-2xl border border-ink/15 bg-surface/60 p-4 sm:flex-row sm:items-center">
+        <div className="mb-8 flex flex-col justify-between gap-4 rounded-2xl border border-ink/15 bg-surface/70 p-4 sm:flex-row sm:items-center">
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -50,7 +51,7 @@ export function GalleryExplorer({
               className={`rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
                 selectedCategory === 'all'
                   ? 'bg-ink text-canvas'
-                  : 'border border-ink/15 bg-canvas text-ink hover:bg-surface'
+                  : 'border border-ink/15 bg-canvas text-ink hover:bg-surface-blue'
               }`}
             >
               Todas ({artworks.length})
@@ -63,7 +64,7 @@ export function GalleryExplorer({
                 className={`rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
                   selectedCategory === cat.slug
                     ? 'bg-ink text-canvas'
-                    : 'border border-ink/15 bg-canvas text-ink hover:bg-surface'
+                    : 'border border-ink/15 bg-canvas text-ink hover:bg-surface-blue'
                 }`}
               >
                 {cat.name}
@@ -79,13 +80,31 @@ export function GalleryExplorer({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar estilo, lente o tema..."
               aria-label="Buscar obras en el catálogo"
-              className="w-full rounded-lg border border-ink/20 bg-canvas py-2 pl-9 pr-3 text-xs text-ink placeholder:text-ink/50 focus:border-ink focus:outline-none"
+              className="w-full rounded-lg border border-ink/20 bg-canvas py-2 pl-9 pr-3 text-xs text-ink placeholder:text-ink/50 focus:border-accent focus:outline-none"
             />
           </div>
         </div>
       )}
 
-      {displayed.length === 0 ? (
+      {artworks.length === 0 ? (
+        <div className="rounded-3xl border border-ink/20 bg-surface/60 p-12 text-center">
+          <ImagePlus className="mx-auto h-10 w-10 text-accent" />
+          <h3 className="mt-4 font-serif text-2xl font-semibold text-ink">
+            Catálogo en vivo conectado a Supabase Storage
+          </h3>
+          <p className="mx-auto mt-2 max-w-md text-sm text-ink/75">
+            No hay obras cargadas todavía en la base de datos real. Inicia sesión
+            con tu cuenta de Google en el panel de administración para subir tus
+            primeras imágenes y prompts.
+          </p>
+          <Link
+            href="/admin"
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-xs font-semibold text-white hover:opacity-90"
+          >
+            Subir Primera Obra en /admin
+          </Link>
+        </div>
+      ) : displayed.length === 0 ? (
         <div className="rounded-2xl border border-ink/15 bg-surface/50 p-12 text-center">
           <p className="font-serif text-xl font-medium text-ink">
             No encontramos obras para tu búsqueda actual.

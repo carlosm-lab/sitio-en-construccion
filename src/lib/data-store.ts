@@ -1,6 +1,4 @@
 import crypto from 'crypto';
-import fs from 'fs';
-import path from 'path';
 import {
   ArtworkCategory,
   ArtworkFull,
@@ -10,61 +8,12 @@ import {
   CustomerRecord,
   ManualItem,
 } from '@/types';
+import {
+  BUCKET_HIGHRES,
+  BUCKET_MANUALS,
+  BUCKET_WATERMARKED,
+} from './constants';
 import { getSupabaseAdmin } from './supabase';
-import { SEED_ARTWORKS, SEED_MANUALS, stripPrivateArtworkFields } from './seed-data';
-
-interface LocalStoreData {
-  artworks: ArtworkFull[];
-  manuals: ManualItem[];
-  customers: CustomerRecord[];
-  audit_logs: AuditLogRecord[];
-}
-
-const DATA_DIR = path.join(process.cwd(), '.data');
-const DATA_FILE = path.join(DATA_DIR, 'artedigital-store.json');
-
-let memoryStore: LocalStoreData | null = null;
-
-function readLocalStore(): LocalStoreData {
-  if (memoryStore) return memoryStore;
-
-  try {
-    if (fs.existsSync(DATA_FILE)) {
-      const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-      const parsed = JSON.parse(raw) as LocalStoreData;
-      memoryStore = {
-        artworks: parsed.artworks?.length ? parsed.artworks : [...SEED_ARTWORKS],
-        manuals: parsed.manuals?.length ? parsed.manuals : [...SEED_MANUALS],
-        customers: parsed.customers || [],
-        audit_logs: parsed.audit_logs || [],
-      };
-      return memoryStore;
-    }
-  } catch {
-    // Fallback to in-memory seed
-  }
-
-  memoryStore = {
-    artworks: [...SEED_ARTWORKS],
-    manuals: [...SEED_MANUALS],
-    customers: [],
-    audit_logs: [],
-  };
-  writeLocalStore(memoryStore);
-  return memoryStore;
-}
-
-function writeLocalStore(store: LocalStoreData): void {
-  memoryStore = store;
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2), 'utf-8');
-  } catch {
-    // Read-only filesystem in serverless runtime; in-memory state stays intact for current container
-  }
-}
 
 /**
  * Genera código único alfanumérico limpio: AD-XXXX-XXXX
@@ -82,135 +31,297 @@ export function generateLicenseCode(): string {
   return `AD-${segment()}-${segment()}`;
 }
 
+/**
+ * Obtiene obras públicas reales desde Supabase (solo columnas no sensibles).
+ */
 export async function getPublicArtworks(category?: ArtworkCategory): Promise<ArtworkPublic[]> {
   const supabase = getSupabaseAdmin();
-  if (supabase) {
-    let query = supabase
-      .from('artworks')
-      .select(
-        'id, title, slug, category, prompt_preview, render_params, watermarked_url, alt_text, created_at'
-      )
-      .order('created_at', { ascending: false });
+  let query = supabase
+    .from('artworks')
+    .select(
+      'id, title, slug, category, prompt_preview, render_params, watermarked_url, alt_text, created_at'
+    )
+    .order('created_at', { ascending: false });
 
-    if (category) {
-      query = query.eq('category', category);
-    }
-
-    const { data, error } = await query;
-    if (!error && data && data.length > 0) {
-      return data as ArtworkPublic[];
-    }
+  if (category) {
+    query = query.eq('category', category);
   }
 
-  const store = readLocalStore();
-  const filtered = category
-    ? store.artworks.filter((a) => a.category === category)
-    : store.artworks;
-  return filtered
-    .slice()
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))
-    .map(stripPrivateArtworkFields);
+  const { data, error } = await query;
+  if (error) {
+    throw new Error(`Error leyendo artworks desde Supabase: ${error.message}`);
+  }
+  return (data || []) as ArtworkPublic[];
 }
 
 export async function getPublicArtworkBySlug(slug: string): Promise<ArtworkPublic | null> {
   const supabase = getSupabaseAdmin();
-  if (supabase) {
-    const { data, error } = await supabase
-      .from('artworks')
-      .select(
-        'id, title, slug, category, prompt_preview, render_params, watermarked_url, alt_text, created_at'
-      )
-      .eq('slug', slug)
-      .maybeSingle();
+  const { data, error } = await supabase
+    .from('artworks')
+    .select(
+      'id, title, slug, category, prompt_preview, render_params, watermarked_url, alt_text, created_at'
+    )
+    .eq('slug', slug)
+    .maybeSingle();
 
-    if (!error && data) {
-      return data as ArtworkPublic;
-    }
+  if (error) {
+    throw new Error(`Error leyendo obra "${slug}": ${error.message}`);
   }
-
-  const store = readLocalStore();
-  const found = store.artworks.find((a) => a.slug === slug);
-  return found ? stripPrivateArtworkFields(found) : null;
+  return (data as ArtworkPublic) || null;
 }
 
-export async function getFullArtworks(): Promise<ArtworkFull[]> {
+/**
+ * Obtiene obras completas con Signed URLs temporales (1 hora) desde Supabase Storage privado para VIPs.
+ */
+export async function getFullArtworksWithSignedUrls(): Promise<ArtworkFull[]> {
   const supabase = getSupabaseAdmin();
-  if (supabase) {
-    const { data, error } = await supabase
-      .from('artworks')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (!error && data && data.length > 0) {
-      return data as ArtworkFull[];
-    }
+  const { data, error } = await supabase
+    .from('artworks')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error(`Error leyendo artworks VIP: ${error.message}`);
   }
 
-  const store = readLocalStore();
-  return store.artworks.slice().sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const items = (data || []) as ArtworkFull[];
+  if (items.length === 0) return [];
+
+  const paths = items.map((i) => i.high_res_path).filter(Boolean);
+  const { data: signedList } = await supabase.storage
+    .from(BUCKET_HIGHRES)
+    .createSignedUrls(paths, 3600);
+
+  const signedMap = new Map<string, string>();
+  (signedList || []).forEach((entry) => {
+    if (entry.path && entry.signedUrl) {
+      signedMap.set(entry.path, entry.signedUrl);
+    }
+  });
+
+  return items.map((item) => ({
+    ...item,
+    high_res_signed_url: signedMap.get(item.high_res_path) || item.watermarked_url,
+  }));
 }
 
-export async function getManuals(includeFileUrl: boolean): Promise<ManualItem[]> {
+export async function getAllArtworksAdmin(): Promise<ArtworkFull[]> {
   const supabase = getSupabaseAdmin();
-  if (supabase) {
-    const columns = includeFileUrl
-      ? 'id, title, description, pages_count, format, file_url, created_at'
-      : 'id, title, description, pages_count, format, created_at';
-    const { data, error } = await supabase
-      .from('manuals')
-      .select(columns)
-      .order('created_at', { ascending: true });
-    if (!error && data && data.length > 0) {
-      return data as unknown as ManualItem[];
-    }
-  }
+  const { data, error } = await supabase
+    .from('artworks')
+    .select('*')
+    .order('created_at', { ascending: false });
 
-  const store = readLocalStore();
-  return store.manuals.map((m) =>
-    includeFileUrl
-      ? m
-      : {
-          id: m.id,
-          title: m.title,
-          description: m.description,
-          pages_count: m.pages_count,
-          format: m.format,
-          created_at: m.created_at,
-        }
-  );
+  if (error) {
+    throw new Error(`Error leyendo catálogo admin: ${error.message}`);
+  }
+  return (data || []) as ArtworkFull[];
 }
 
-export async function createArtwork(input: {
+export async function getManuals(includePrivateFields: boolean): Promise<ManualItem[]> {
+  const supabase = getSupabaseAdmin();
+  const columns = includePrivateFields
+    ? 'id, title, description, pages_count, format, file_path, file_name, created_at'
+    : 'id, title, description, pages_count, format, created_at';
+
+  const { data, error } = await supabase
+    .from('manuals')
+    .select(columns)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error(`Error leyendo manuales desde Supabase: ${error.message}`);
+  }
+  return (data || []) as unknown as ManualItem[];
+}
+
+export async function createSignedAssetUrl(
+  bucket: string,
+  objectPath: string,
+  downloadFilename?: string
+): Promise<string> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUrl(objectPath, 300, {
+      download: downloadFilename || true,
+    });
+
+  if (error || !data?.signedUrl) {
+    throw new Error(
+      `No se pudo generar enlace firmado en ${bucket}: ${error?.message || 'sin URL'}`
+    );
+  }
+  return data.signedUrl;
+}
+
+/**
+ * Sube imagen con marca de agua al bucket público `watermarked-art`,
+ * sube imagen original 4K al bucket privado `vip-highres-art`,
+ * y crea el registro real en `public.artworks`.
+ */
+export async function uploadAndCreateArtwork(params: {
   title: string;
   slug: string;
   category: ArtworkCategory;
   prompt_preview: string;
   prompt_full: string;
   render_params: Record<string, string>;
-  watermarked_url: string;
-  high_res_url: string;
   alt_text: string;
+  watermarkedBuffer: Buffer;
+  watermarkedMime: string;
+  highResBuffer: Buffer;
+  highResMime: string;
+  ext: string;
 }): Promise<ArtworkFull> {
   const supabase = getSupabaseAdmin();
-  if (supabase) {
-    const { data, error } = await supabase
-      .from('artworks')
-      .insert(input)
-      .select('*')
-      .single();
-    if (!error && data) {
-      return data as ArtworkFull;
-    }
+  const timestamp = Date.now();
+  const watermarkedPath = `${params.category}/${params.slug}-${timestamp}-preview.${params.ext}`;
+  const highResPath = `${params.category}/${params.slug}-${timestamp}-master.${params.ext}`;
+
+  const { error: wmErr } = await supabase.storage
+    .from(BUCKET_WATERMARKED)
+    .upload(watermarkedPath, params.watermarkedBuffer, {
+      contentType: params.watermarkedMime,
+      upsert: false,
+    });
+
+  if (wmErr) {
+    throw new Error(`Error subiendo vista previa a Storage: ${wmErr.message}`);
   }
 
-  const store = readLocalStore();
-  const created: ArtworkFull = {
-    id: `art-${crypto.randomUUID().slice(0, 8)}`,
-    ...input,
-    created_at: new Date().toISOString(),
-  };
-  store.artworks.unshift(created);
-  writeLocalStore(store);
-  return created;
+  const { error: hrErr } = await supabase.storage
+    .from(BUCKET_HIGHRES)
+    .upload(highResPath, params.highResBuffer, {
+      contentType: params.highResMime,
+      upsert: false,
+    });
+
+  if (hrErr) {
+    await supabase.storage.from(BUCKET_WATERMARKED).remove([watermarkedPath]);
+    throw new Error(`Error subiendo master 4K a Storage: ${hrErr.message}`);
+  }
+
+  const { data: publicUrlData } = supabase.storage
+    .from(BUCKET_WATERMARKED)
+    .getPublicUrl(watermarkedPath);
+
+  const { data: created, error: dbErr } = await supabase
+    .from('artworks')
+    .insert({
+      title: params.title,
+      slug: params.slug,
+      category: params.category,
+      prompt_preview: params.prompt_preview,
+      prompt_full: params.prompt_full,
+      render_params: params.render_params,
+      watermarked_path: watermarkedPath,
+      watermarked_url: publicUrlData.publicUrl,
+      high_res_path: highResPath,
+      alt_text: params.alt_text,
+    })
+    .select('*')
+    .single();
+
+  if (dbErr || !created) {
+    await supabase.storage.from(BUCKET_WATERMARKED).remove([watermarkedPath]);
+    await supabase.storage.from(BUCKET_HIGHRES).remove([highResPath]);
+    throw new Error(`Error guardando obra en PostgreSQL: ${dbErr?.message || 'desconocido'}`);
+  }
+
+  return created as ArtworkFull;
+}
+
+export async function deleteArtworkById(id: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { data: existing, error: fetchErr } = await supabase
+    .from('artworks')
+    .select('id, watermarked_path, high_res_path')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (fetchErr || !existing) {
+    throw new Error('Obra no encontrada en la base de datos.');
+  }
+
+  if (existing.watermarked_path) {
+    await supabase.storage.from(BUCKET_WATERMARKED).remove([existing.watermarked_path]);
+  }
+  if (existing.high_res_path) {
+    await supabase.storage.from(BUCKET_HIGHRES).remove([existing.high_res_path]);
+  }
+
+  const { error: delErr } = await supabase.from('artworks').delete().eq('id', id);
+  if (delErr) {
+    throw new Error(`Error eliminando obra: ${delErr.message}`);
+  }
+}
+
+export async function uploadAndCreateManual(params: {
+  title: string;
+  description: string;
+  pages_count: number;
+  format: string;
+  fileBuffer: Buffer;
+  fileMime: string;
+  fileName: string;
+}): Promise<ManualItem> {
+  const supabase = getSupabaseAdmin();
+  const safeName = params.fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const filePath = `guides/${Date.now()}-${safeName}`;
+
+  const { error: upErr } = await supabase.storage
+    .from(BUCKET_MANUALS)
+    .upload(filePath, params.fileBuffer, {
+      contentType: params.fileMime || 'application/pdf',
+      upsert: false,
+    });
+
+  if (upErr) {
+    throw new Error(`Error subiendo manual a Storage: ${upErr.message}`);
+  }
+
+  const { data: created, error: dbErr } = await supabase
+    .from('manuals')
+    .insert({
+      title: params.title,
+      description: params.description,
+      pages_count: params.pages_count,
+      format: params.format,
+      file_path: filePath,
+      file_name: safeName,
+    })
+    .select('*')
+    .single();
+
+  if (dbErr || !created) {
+    await supabase.storage.from(BUCKET_MANUALS).remove([filePath]);
+    throw new Error(`Error guardando manual en PostgreSQL: ${dbErr?.message || 'desconocido'}`);
+  }
+
+  return created as ManualItem;
+}
+
+export async function deleteManualById(id: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { data: existing, error: fetchErr } = await supabase
+    .from('manuals')
+    .select('id, file_path')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (fetchErr || !existing) {
+    throw new Error('Manual no encontrado.');
+  }
+
+  if (existing.file_path) {
+    await supabase.storage.from(BUCKET_MANUALS).remove([existing.file_path]);
+  }
+
+  const { error: delErr } = await supabase.from('manuals').delete().eq('id', id);
+  if (delErr) {
+    throw new Error(`Error eliminando manual: ${delErr.message}`);
+  }
 }
 
 export async function upsertCustomerAfterPayment(params: {
@@ -222,61 +333,36 @@ export async function upsertCustomerAfterPayment(params: {
   const normalizedEmail = params.email.trim().toLowerCase();
   const supabase = getSupabaseAdmin();
 
-  if (supabase) {
-    // Check idempotency by paypal_order_id first
-    const { data: existingOrder } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('paypal_order_id', params.paypalOrderId)
-      .maybeSingle();
+  const { data: existingOrder } = await supabase
+    .from('customers')
+    .select('*')
+    .eq('paypal_order_id', params.paypalOrderId)
+    .maybeSingle();
 
-    if (existingOrder) {
-      return existingOrder as CustomerRecord;
-    }
-
-    const licenseCode = generateLicenseCode();
-    const { data: inserted, error } = await supabase
-      .from('customers')
-      .insert({
-        email: normalizedEmail,
-        license_code: licenseCode,
-        paypal_order_id: params.paypalOrderId,
-        paypal_payer_id: params.paypalPayerId,
-        amount_usd: 20.0,
-        terms_version: params.termsVersion,
-        is_active: true,
-      })
-      .select('*')
-      .single();
-
-    if (!error && inserted) {
-      return inserted as CustomerRecord;
-    }
+  if (existingOrder) {
+    return existingOrder as CustomerRecord;
   }
 
-  const store = readLocalStore();
-  const existing = store.customers.find(
-    (c) => c.paypal_order_id === params.paypalOrderId
-  );
-  if (existing) {
-    return existing;
+  const licenseCode = generateLicenseCode();
+  const { data: inserted, error } = await supabase
+    .from('customers')
+    .insert({
+      email: normalizedEmail,
+      license_code: licenseCode,
+      paypal_order_id: params.paypalOrderId,
+      paypal_payer_id: params.paypalPayerId,
+      amount_usd: 20.0,
+      terms_version: params.termsVersion,
+      is_active: true,
+    })
+    .select('*')
+    .single();
+
+  if (error || !inserted) {
+    throw new Error(`Error registrando cliente en Supabase: ${error?.message || 'desconocido'}`);
   }
 
-  const created: CustomerRecord = {
-    id: crypto.randomUUID(),
-    email: normalizedEmail,
-    license_code: generateLicenseCode(),
-    paypal_order_id: params.paypalOrderId,
-    paypal_payer_id: params.paypalPayerId,
-    amount_usd: 20.0,
-    terms_version: params.termsVersion,
-    is_active: true,
-    created_at: new Date().toISOString(),
-  };
-
-  store.customers.unshift(created);
-  writeLocalStore(store);
-  return created;
+  return inserted as CustomerRecord;
 }
 
 export async function findCustomerByCredentials(
@@ -285,31 +371,39 @@ export async function findCustomerByCredentials(
 ): Promise<CustomerRecord | null> {
   const cleanEmail = email.trim().toLowerCase();
   const cleanCode = licenseCode.trim().toUpperCase();
-
   const supabase = getSupabaseAdmin();
-  if (supabase) {
-    const { data, error } = await supabase
-      .from('customers')
-      .select('*')
-      .ilike('email', cleanEmail)
-      .eq('license_code', cleanCode)
-      .eq('is_active', true)
-      .maybeSingle();
 
-    if (!error && data) {
-      return data as CustomerRecord;
-    }
+  const { data, error } = await supabase
+    .from('customers')
+    .select('*')
+    .ilike('email', cleanEmail)
+    .eq('license_code', cleanCode)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Error verificando licencia: ${error.message}`);
   }
+  return (data as CustomerRecord) || null;
+}
 
-  const store = readLocalStore();
-  return (
-    store.customers.find(
-      (c) =>
-        c.email.toLowerCase() === cleanEmail &&
-        c.license_code.toUpperCase() === cleanCode &&
-        c.is_active
-    ) || null
-  );
+export async function findActiveCustomerByEmail(email: string): Promise<CustomerRecord | null> {
+  const cleanEmail = email.trim().toLowerCase();
+  const supabase = getSupabaseAdmin();
+
+  const { data, error } = await supabase
+    .from('customers')
+    .select('*')
+    .ilike('email', cleanEmail)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Error buscando cliente por Google email: ${error.message}`);
+  }
+  return (data as CustomerRecord) || null;
 }
 
 export async function insertAuditLog(entry: {
@@ -321,39 +415,23 @@ export async function insertAuditLog(entry: {
   metadata?: Record<string, unknown>;
 }): Promise<AuditLogRecord> {
   const supabase = getSupabaseAdmin();
-  if (supabase) {
-    const { data, error } = await supabase
-      .from('audit_logs')
-      .insert({
-        customer_id: entry.customerId ?? null,
-        paypal_order_id: entry.paypalOrderId ?? null,
-        ip_address: entry.ipAddress,
-        user_agent: entry.userAgent,
-        action: entry.action,
-        metadata: entry.metadata ?? {},
-      })
-      .select('*')
-      .single();
+  const { data, error } = await supabase
+    .from('audit_logs')
+    .insert({
+      customer_id: entry.customerId ?? null,
+      paypal_order_id: entry.paypalOrderId ?? null,
+      ip_address: entry.ipAddress,
+      user_agent: entry.userAgent,
+      action: entry.action,
+      metadata: entry.metadata ?? {},
+    })
+    .select('*')
+    .single();
 
-    if (!error && data) {
-      return data as AuditLogRecord;
-    }
+  if (error || !data) {
+    throw new Error(`Error registrando audit_log: ${error?.message || 'desconocido'}`);
   }
-
-  const store = readLocalStore();
-  const record: AuditLogRecord = {
-    id: crypto.randomUUID(),
-    customer_id: entry.customerId ?? null,
-    paypal_order_id: entry.paypalOrderId ?? null,
-    ip_address: entry.ipAddress,
-    user_agent: entry.userAgent,
-    action: entry.action,
-    metadata: entry.metadata ?? {},
-    created_at: new Date().toISOString(),
-  };
-  store.audit_logs.unshift(record);
-  writeLocalStore(store);
-  return record;
+  return data as AuditLogRecord;
 }
 
 export async function lookupDisputeEvidence(query: string): Promise<{
@@ -369,77 +447,47 @@ export async function lookupDisputeEvidence(query: string): Promise<{
   const lowerQuery = cleanQuery.toLowerCase();
   const supabase = getSupabaseAdmin();
 
-  if (supabase) {
-    const { data: customer } = await supabase
-      .from('customers')
-      .select('*')
-      .or(
-        `license_code.eq.${upperQuery},paypal_order_id.eq.${cleanQuery},email.ilike.${lowerQuery}`
-      )
-      .maybeSingle();
+  const { data: customer } = await supabase
+    .from('customers')
+    .select('*')
+    .or(
+      `license_code.eq.${upperQuery},paypal_order_id.eq.${cleanQuery},email.ilike.${lowerQuery}`
+    )
+    .maybeSingle();
 
-    const orderIdToSearch = customer?.paypal_order_id || cleanQuery;
-    const customerIdToSearch = customer?.id;
+  const orderIdToSearch = customer?.paypal_order_id || cleanQuery;
+  const customerIdToSearch = customer?.id;
 
-    let logsQuery = supabase
-      .from('audit_logs')
-      .select('*')
-      .order('created_at', { ascending: true });
+  let logsQuery = supabase
+    .from('audit_logs')
+    .select('*')
+    .order('created_at', { ascending: true });
 
-    if (customerIdToSearch) {
-      logsQuery = logsQuery.or(
-        `customer_id.eq.${customerIdToSearch},paypal_order_id.eq.${orderIdToSearch}`
-      );
-    } else {
-      logsQuery = logsQuery.eq('paypal_order_id', orderIdToSearch);
-    }
-
-    const { data: logs } = await logsQuery;
-    if (customer || (logs && logs.length > 0)) {
-      return {
-        customer: (customer as CustomerRecord) || null,
-        logs: (logs as AuditLogRecord[]) || [],
-      };
-    }
+  if (customerIdToSearch) {
+    logsQuery = logsQuery.or(
+      `customer_id.eq.${customerIdToSearch},paypal_order_id.eq.${orderIdToSearch}`
+    );
+  } else {
+    logsQuery = logsQuery.eq('paypal_order_id', orderIdToSearch);
   }
 
-  const store = readLocalStore();
-  const customer =
-    store.customers.find(
-      (c) =>
-        c.license_code.toUpperCase() === upperQuery ||
-        c.paypal_order_id === cleanQuery ||
-        c.email.toLowerCase() === lowerQuery
-    ) || null;
-
-  const targetOrder = customer?.paypal_order_id || cleanQuery;
-  const logs = store.audit_logs
-    .filter(
-      (l) =>
-        (customer && l.customer_id === customer.id) ||
-        l.paypal_order_id === targetOrder ||
-        (l.metadata &&
-          typeof l.metadata.license_code === 'string' &&
-          l.metadata.license_code.toUpperCase() === upperQuery)
-    )
-    .sort((a, b) => a.created_at.localeCompare(b.created_at));
-
-  return { customer, logs };
+  const { data: logs } = await logsQuery;
+  return {
+    customer: (customer as CustomerRecord) || null,
+    logs: (logs as AuditLogRecord[]) || [],
+  };
 }
 
 export async function listRecentCustomers(): Promise<CustomerRecord[]> {
   const supabase = getSupabaseAdmin();
-  if (supabase) {
-    const { data, error } = await supabase
-      .from('customers')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(50);
-    if (!error && data) {
-      return data as CustomerRecord[];
-    }
-  }
+  const { data, error } = await supabase
+    .from('customers')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(50);
 
-  const store = readLocalStore();
-  return store.customers.slice(0, 50);
+  if (error) {
+    throw new Error(`Error listando clientes: ${error.message}`);
+  }
+  return (data || []) as CustomerRecord[];
 }

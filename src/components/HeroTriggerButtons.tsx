@@ -18,7 +18,7 @@ export function UnlockPrimaryButton({
     <button
       type="button"
       onClick={() => openCheckout(artworkTitle)}
-      className={`inline-flex items-center justify-center gap-2 rounded-xl bg-ink px-6 py-3.5 text-sm font-semibold text-canvas transition-opacity hover:opacity-90 ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 ${className}`}
     >
       <LockOpen className="h-4 w-4" />
       <span>{label}</span>
@@ -32,9 +32,9 @@ export function MemberAccessButton({ className = '' }: { className?: string }) {
     <button
       type="button"
       onClick={openLogin}
-      className={`inline-flex items-center justify-center gap-2 rounded-xl border border-ink/25 bg-surface px-5 py-3.5 text-sm font-semibold text-ink transition-colors hover:bg-surface/80 ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl border border-ink/25 bg-surface px-5 py-3.5 text-sm font-semibold text-ink transition-colors hover:bg-surface-blue ${className}`}
     >
-      <KeyRound className="h-4 w-4" />
+      <KeyRound className="h-4 w-4 text-accent" />
       <span>Ya tengo código AD-XXXX</span>
     </button>
   );
