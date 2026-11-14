@@ -7,6 +7,7 @@ import {
   AuditLogRecord,
   CustomerRecord,
   ManualItem,
+  SupportMessageRecord,
 } from '@/types';
 import {
   BUCKET_HIGHRES,
@@ -14,6 +15,87 @@ import {
   BUCKET_WATERMARKED,
 } from './constants';
 import { getSupabaseAdmin } from './supabase';
+
+/**
+ * Valida estrictamente el formato de correo y rechaza comodines SQL/PostgREST (%, _, \, comas, paréntesis).
+ */
+export function isValidCleanEmail(email: string): boolean {
+  if (!email || typeof email !== 'string') return false;
+  const trimmed = email.trim();
+  if (trimmed.length < 5 || trimmed.length > 254) return false;
+  if (/[%\\,()'"\s<>]/.test(trimmed)) return false;
+  return /^[a-zA-Z0-9._+-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/.test(
+    trimmed
+  );
+}
+
+export function isValidLicenseCodeFormat(code: string): boolean {
+  if (!code || typeof code !== 'string') return false;
+  return /^AD-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code.trim().toUpperCase());
+}
+
+/**
+ * Valida magic bytes reales de imágenes (PNG, JPEG, WEBP).
+ */
+export function detectImageMimeFromMagicBytes(
+  buf: Buffer
+): { mime: string; ext: 'jpg' | 'png' | 'webp' } | null {
+  if (!buf || buf.length < 12) return null;
+
+  // JPEG: FF D8 FF
+  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
+    return { mime: 'image/jpeg', ext: 'jpg' };
+  }
+
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  if (
+    buf[0] === 0x89 &&
+    buf[1] === 0x50 &&
+    buf[2] === 0x4e &&
+    buf[3] === 0x47 &&
+    buf[4] === 0x0d &&
+    buf[5] === 0x0a &&
+    buf[6] === 0x1a &&
+    buf[7] === 0x0a
+  ) {
+    return { mime: 'image/png', ext: 'png' };
+  }
+
+  // WEBP: RIFF....WEBP
+  if (
+    buf.subarray(0, 4).toString('ascii') === 'RIFF' &&
+    buf.subarray(8, 12).toString('ascii') === 'WEBP'
+  ) {
+    return { mime: 'image/webp', ext: 'webp' };
+  }
+
+  return null;
+}
+
+/**
+ * Valida magic bytes reales de documentos (PDF o ZIP).
+ */
+export function detectManualMimeFromMagicBytes(
+  buf: Buffer
+): { mime: string; format: 'PDF' | 'ZIP' } | null {
+  if (!buf || buf.length < 5) return null;
+
+  // PDF: %PDF-
+  if (buf.subarray(0, 5).toString('ascii') === '%PDF-') {
+    return { mime: 'application/pdf', format: 'PDF' };
+  }
+
+  // ZIP: PK\x03\x04 o PK\x05\x06
+  if (
+    buf[0] === 0x50 &&
+    buf[1] === 0x4b &&
+    ((buf[2] === 0x03 && buf[3] === 0x04) || (buf[2] === 0x05 && buf[3] === 0x06))
+  ) {
+    return { mime: 'application/zip', format: 'ZIP' };
+  }
+
+  return null;
+}
 
 /**
  * Genera código único alfanumérico limpio: AD-XXXX-XXXX
@@ -32,7 +114,7 @@ export function generateLicenseCode(): string {
 }
 
 /**
- * Obtiene obras públicas reales desde Supabase (solo columnas no sensibles).
+ * Obtiene obras públicas reales (solo columnas públicas no sensibles).
  */
 export async function getPublicArtworks(category?: ArtworkCategory): Promise<ArtworkPublic[]> {
   const supabase = getSupabaseAdmin();
@@ -49,7 +131,8 @@ export async function getPublicArtworks(category?: ArtworkCategory): Promise<Art
 
   const { data, error } = await query;
   if (error) {
-    throw new Error(`Error leyendo artworks desde Supabase: ${error.message}`);
+    console.error('Error leyendo artworks públicos:', error.message);
+    throw new Error('No se pudo cargar el catálogo de obras.');
   }
   return (data || []) as ArtworkPublic[];
 }
@@ -65,13 +148,14 @@ export async function getPublicArtworkBySlug(slug: string): Promise<ArtworkPubli
     .maybeSingle();
 
   if (error) {
-    throw new Error(`Error leyendo obra "${slug}": ${error.message}`);
+    console.error(`Error leyendo obra "${slug}":`, error.message);
+    throw new Error('No se pudo consultar la obra solicitada.');
   }
   return (data as ArtworkPublic) || null;
 }
 
 /**
- * Obtiene obras completas con Signed URLs temporales (1 hora) desde Supabase Storage privado para VIPs.
+ * Obtiene obras completas con Signed URLs temporales (1 hora) para clientes VIP autenticados.
  */
 export async function getFullArtworksWithSignedUrls(): Promise<ArtworkFull[]> {
   const supabase = getSupabaseAdmin();
@@ -81,7 +165,8 @@ export async function getFullArtworksWithSignedUrls(): Promise<ArtworkFull[]> {
     .order('created_at', { ascending: false });
 
   if (error) {
-    throw new Error(`Error leyendo artworks VIP: ${error.message}`);
+    console.error('Error leyendo artworks VIP:', error.message);
+    throw new Error('No se pudo cargar el catálogo privado VIP.');
   }
 
   const items = (data || []) as ArtworkFull[];
@@ -113,7 +198,8 @@ export async function getAllArtworksAdmin(): Promise<ArtworkFull[]> {
     .order('created_at', { ascending: false });
 
   if (error) {
-    throw new Error(`Error leyendo catálogo admin: ${error.message}`);
+    console.error('Error leyendo catálogo admin:', error.message);
+    throw new Error('Error consultando el inventario de obras.');
   }
   return (data || []) as ArtworkFull[];
 }
@@ -130,7 +216,8 @@ export async function getManuals(includePrivateFields: boolean): Promise<ManualI
     .order('created_at', { ascending: false });
 
   if (error) {
-    throw new Error(`Error leyendo manuales desde Supabase: ${error.message}`);
+    console.error('Error leyendo manuales:', error.message);
+    throw new Error('No se pudo cargar la biblioteca de manuales.');
   }
   return (data || []) as unknown as ManualItem[];
 }
@@ -148,15 +235,97 @@ export async function createSignedAssetUrl(
     });
 
   if (error || !data?.signedUrl) {
-    throw new Error(
-      `No se pudo generar enlace firmado en ${bucket}: ${error?.message || 'sin URL'}`
-    );
+    console.error(`Error generando enlace firmado en ${bucket}:`, error?.message);
+    throw new Error('No se pudo generar el enlace seguro de descarga.');
   }
   return data.signedUrl;
 }
 
 /**
- * Sube imagen con marca de agua al bucket público `watermarked-art`,
+ * Genera Signed Upload URLs para subir archivos pesados (4K > 4.5 MB) directamente desde el cliente
+ * hacia Supabase Storage sin pasar por el límite de payload de Vercel Serverless Functions.
+ */
+export async function createSignedArtworkUploadUrls(params: {
+  category: ArtworkCategory;
+  slug: string;
+  ext: 'jpg' | 'png' | 'webp';
+}) {
+  const supabase = getSupabaseAdmin();
+  const timestamp = Date.now();
+  const watermarkedPath = `${params.category}/${params.slug}-${timestamp}-preview.jpg`;
+  const highResPath = `${params.category}/${params.slug}-${timestamp}-master.${params.ext}`;
+
+  const [wmRes, hrRes] = await Promise.all([
+    supabase.storage.from(BUCKET_WATERMARKED).createSignedUploadUrl(watermarkedPath),
+    supabase.storage.from(BUCKET_HIGHRES).createSignedUploadUrl(highResPath),
+  ]);
+
+  if (wmRes.error || !wmRes.data) {
+    console.error('Error creando signed upload URL para watermark:', wmRes.error);
+    throw new Error('No se pudo autorizar la subida de la vista previa.');
+  }
+
+  if (hrRes.error || !hrRes.data) {
+    console.error('Error creando signed upload URL para highres:', hrRes.error);
+    throw new Error('No se pudo autorizar la subida del archivo master.');
+  }
+
+  return {
+    watermarkedPath,
+    watermarkedSignedUrl: wmRes.data.signedUrl,
+    watermarkedToken: wmRes.data.token,
+    highResPath,
+    highResSignedUrl: hrRes.data.signedUrl,
+    highResToken: hrRes.data.token,
+  };
+}
+
+export async function registerUploadedArtwork(params: {
+  title: string;
+  slug: string;
+  category: ArtworkCategory;
+  prompt_preview: string;
+  prompt_full: string;
+  render_params: Record<string, string>;
+  alt_text: string;
+  watermarkedPath: string;
+  highResPath: string;
+}): Promise<ArtworkFull> {
+  const supabase = getSupabaseAdmin();
+
+  const { data: publicUrlData } = supabase.storage
+    .from(BUCKET_WATERMARKED)
+    .getPublicUrl(params.watermarkedPath);
+
+  const { data: created, error: dbErr } = await supabase
+    .from('artworks')
+    .insert({
+      title: params.title,
+      slug: params.slug,
+      category: params.category,
+      prompt_preview: params.prompt_preview,
+      prompt_full: params.prompt_full,
+      render_params: params.render_params,
+      watermarked_path: params.watermarkedPath,
+      watermarked_url: publicUrlData.publicUrl,
+      high_res_path: params.highResPath,
+      alt_text: params.alt_text,
+    })
+    .select('*')
+    .single();
+
+  if (dbErr || !created) {
+    console.error('Error insertando obra en PostgreSQL:', dbErr);
+    await supabase.storage.from(BUCKET_WATERMARKED).remove([params.watermarkedPath]);
+    await supabase.storage.from(BUCKET_HIGHRES).remove([params.highResPath]);
+    throw new Error('No se pudo registrar la obra en la base de datos.');
+  }
+
+  return created as ArtworkFull;
+}
+
+/**
+ * Sube imagen con marca de agua (siempre .jpg) al bucket público `watermarked-art`,
  * sube imagen original 4K al bucket privado `vip-highres-art`,
  * y crea el registro real en `public.artworks`.
  */
@@ -176,18 +345,19 @@ export async function uploadAndCreateArtwork(params: {
 }): Promise<ArtworkFull> {
   const supabase = getSupabaseAdmin();
   const timestamp = Date.now();
-  const watermarkedPath = `${params.category}/${params.slug}-${timestamp}-preview.${params.ext}`;
+  const watermarkedPath = `${params.category}/${params.slug}-${timestamp}-preview.jpg`;
   const highResPath = `${params.category}/${params.slug}-${timestamp}-master.${params.ext}`;
 
   const { error: wmErr } = await supabase.storage
     .from(BUCKET_WATERMARKED)
     .upload(watermarkedPath, params.watermarkedBuffer, {
-      contentType: params.watermarkedMime,
+      contentType: 'image/jpeg',
       upsert: false,
     });
 
   if (wmErr) {
-    throw new Error(`Error subiendo vista previa a Storage: ${wmErr.message}`);
+    console.error('Error subiendo vista previa a Storage:', wmErr);
+    throw new Error('No se pudo almacenar la vista previa con marca de agua.');
   }
 
   const { error: hrErr } = await supabase.storage
@@ -198,38 +368,22 @@ export async function uploadAndCreateArtwork(params: {
     });
 
   if (hrErr) {
+    console.error('Error subiendo master 4K a Storage:', hrErr);
     await supabase.storage.from(BUCKET_WATERMARKED).remove([watermarkedPath]);
-    throw new Error(`Error subiendo master 4K a Storage: ${hrErr.message}`);
+    throw new Error('No se pudo almacenar el archivo master en alta resolución.');
   }
 
-  const { data: publicUrlData } = supabase.storage
-    .from(BUCKET_WATERMARKED)
-    .getPublicUrl(watermarkedPath);
-
-  const { data: created, error: dbErr } = await supabase
-    .from('artworks')
-    .insert({
-      title: params.title,
-      slug: params.slug,
-      category: params.category,
-      prompt_preview: params.prompt_preview,
-      prompt_full: params.prompt_full,
-      render_params: params.render_params,
-      watermarked_path: watermarkedPath,
-      watermarked_url: publicUrlData.publicUrl,
-      high_res_path: highResPath,
-      alt_text: params.alt_text,
-    })
-    .select('*')
-    .single();
-
-  if (dbErr || !created) {
-    await supabase.storage.from(BUCKET_WATERMARKED).remove([watermarkedPath]);
-    await supabase.storage.from(BUCKET_HIGHRES).remove([highResPath]);
-    throw new Error(`Error guardando obra en PostgreSQL: ${dbErr?.message || 'desconocido'}`);
-  }
-
-  return created as ArtworkFull;
+  return registerUploadedArtwork({
+    title: params.title,
+    slug: params.slug,
+    category: params.category,
+    prompt_preview: params.prompt_preview,
+    prompt_full: params.prompt_full,
+    render_params: params.render_params,
+    alt_text: params.alt_text,
+    watermarkedPath,
+    highResPath,
+  });
 }
 
 export async function deleteArtworkById(id: string): Promise<void> {
@@ -253,8 +407,64 @@ export async function deleteArtworkById(id: string): Promise<void> {
 
   const { error: delErr } = await supabase.from('artworks').delete().eq('id', id);
   if (delErr) {
-    throw new Error(`Error eliminando obra: ${delErr.message}`);
+    console.error('Error eliminando obra:', delErr);
+    throw new Error('No se pudo eliminar la obra seleccionada.');
   }
+}
+
+export async function createSignedManualUploadUrl(fileName: string) {
+  const supabase = getSupabaseAdmin();
+  const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_') || 'manual.pdf';
+  const filePath = `guides/${Date.now()}-${safeName}`;
+
+  const { data, error } = await supabase.storage
+    .from(BUCKET_MANUALS)
+    .createSignedUploadUrl(filePath);
+
+  if (error || !data) {
+    console.error('Error creando signed upload URL para manual:', error);
+    throw new Error('No se pudo autorizar la subida del manual técnico.');
+  }
+
+  return {
+    filePath,
+    safeName,
+    signedUrl: data.signedUrl,
+    token: data.token,
+  };
+}
+
+export async function registerUploadedManual(params: {
+  title: string;
+  description: string;
+  pages_count: number;
+  format: string;
+  filePath: string;
+  fileName: string;
+}): Promise<ManualItem> {
+  const supabase = getSupabaseAdmin();
+  const safeName = params.fileName.replace(/[^a-zA-Z0-9._-]/g, '_') || 'manual.pdf';
+
+  const { data: created, error: dbErr } = await supabase
+    .from('manuals')
+    .insert({
+      title: params.title,
+      description: params.description,
+      pages_count: params.pages_count,
+      format: params.format,
+      file_path: params.filePath,
+      file_name: safeName,
+    })
+    .select('*')
+    .single();
+
+  if (dbErr || !created) {
+    console.error('Error guardando manual en PostgreSQL:', dbErr);
+    await supabase.storage.from(BUCKET_MANUALS).remove([params.filePath]);
+    throw new Error('No se pudo registrar el manual en la base de datos.');
+  }
+
+  return created as ManualItem;
 }
 
 export async function uploadAndCreateManual(params: {
@@ -267,7 +477,7 @@ export async function uploadAndCreateManual(params: {
   fileName: string;
 }): Promise<ManualItem> {
   const supabase = getSupabaseAdmin();
-  const safeName = params.fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const safeName = params.fileName.replace(/[^a-zA-Z0-9._-]/g, '_') || 'manual.pdf';
   const filePath = `guides/${Date.now()}-${safeName}`;
 
   const { error: upErr } = await supabase.storage
@@ -278,28 +488,18 @@ export async function uploadAndCreateManual(params: {
     });
 
   if (upErr) {
-    throw new Error(`Error subiendo manual a Storage: ${upErr.message}`);
+    console.error('Error subiendo manual a Storage:', upErr);
+    throw new Error('No se pudo almacenar el archivo del manual.');
   }
 
-  const { data: created, error: dbErr } = await supabase
-    .from('manuals')
-    .insert({
-      title: params.title,
-      description: params.description,
-      pages_count: params.pages_count,
-      format: params.format,
-      file_path: filePath,
-      file_name: safeName,
-    })
-    .select('*')
-    .single();
-
-  if (dbErr || !created) {
-    await supabase.storage.from(BUCKET_MANUALS).remove([filePath]);
-    throw new Error(`Error guardando manual en PostgreSQL: ${dbErr?.message || 'desconocido'}`);
-  }
-
-  return created as ManualItem;
+  return registerUploadedManual({
+    title: params.title,
+    description: params.description,
+    pages_count: params.pages_count,
+    format: params.format,
+    filePath,
+    fileName: safeName,
+  });
 }
 
 export async function deleteManualById(id: string): Promise<void> {
@@ -320,7 +520,8 @@ export async function deleteManualById(id: string): Promise<void> {
 
   const { error: delErr } = await supabase.from('manuals').delete().eq('id', id);
   if (delErr) {
-    throw new Error(`Error eliminando manual: ${delErr.message}`);
+    console.error('Error eliminando manual:', delErr);
+    throw new Error('No se pudo eliminar el manual.');
   }
 }
 
@@ -359,7 +560,8 @@ export async function upsertCustomerAfterPayment(params: {
     .single();
 
   if (error || !inserted) {
-    throw new Error(`Error registrando cliente en Supabase: ${error?.message || 'desconocido'}`);
+    console.error('Error registrando cliente:', error);
+    throw new Error('No se pudo emitir el registro de licencia.');
   }
 
   return inserted as CustomerRecord;
@@ -369,6 +571,10 @@ export async function findCustomerByCredentials(
   email: string,
   licenseCode: string
 ): Promise<CustomerRecord | null> {
+  if (!isValidCleanEmail(email) || !isValidLicenseCodeFormat(licenseCode)) {
+    return null;
+  }
+
   const cleanEmail = email.trim().toLowerCase();
   const cleanCode = licenseCode.trim().toUpperCase();
   const supabase = getSupabaseAdmin();
@@ -376,34 +582,86 @@ export async function findCustomerByCredentials(
   const { data, error } = await supabase
     .from('customers')
     .select('*')
-    .ilike('email', cleanEmail)
+    .eq('email', cleanEmail)
     .eq('license_code', cleanCode)
     .eq('is_active', true)
     .maybeSingle();
 
   if (error) {
-    throw new Error(`Error verificando licencia: ${error.message}`);
+    console.error('Error verificando licencia:', error.message);
+    throw new Error('Error al verificar las credenciales de acceso.');
   }
   return (data as CustomerRecord) || null;
 }
 
-export async function findActiveCustomerByEmail(email: string): Promise<CustomerRecord | null> {
+export async function findActiveCustomerByEmail(
+  email: string
+): Promise<CustomerRecord | null> {
+  if (!isValidCleanEmail(email)) {
+    return null;
+  }
+
   const cleanEmail = email.trim().toLowerCase();
   const supabase = getSupabaseAdmin();
 
   const { data, error } = await supabase
     .from('customers')
     .select('*')
-    .ilike('email', cleanEmail)
+    .eq('email', cleanEmail)
     .eq('is_active', true)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
 
   if (error) {
-    throw new Error(`Error buscando cliente por Google email: ${error.message}`);
+    console.error('Error buscando cliente por email:', error.message);
+    throw new Error('Error consultando membresía asociada al correo.');
   }
-  return (data as CustomerRecord) || null;
+  return (data?.[0] as CustomerRecord) || null;
+}
+
+export async function setCustomerLicenseStatus(
+  customerId: string,
+  isActive: boolean
+): Promise<CustomerRecord> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('customers')
+    .update({ is_active: isActive })
+    .eq('id', customerId)
+    .select('*')
+    .single();
+
+  if (error || !data) {
+    console.error('Error actualizando estado de licencia:', error);
+    throw new Error('No se pudo actualizar el estado de la licencia.');
+  }
+  return data as CustomerRecord;
+}
+
+export async function verifyVipResourceExists(
+  resourceId: string,
+  resourceType: string
+): Promise<{ exists: boolean; title: string }> {
+  if (!resourceId || !/^[0-9a-fA-F-]{36}$/.test(resourceId.trim())) {
+    return { exists: false, title: '' };
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (resourceType === 'manual_pdf') {
+    const { data } = await supabase
+      .from('manuals')
+      .select('id, title')
+      .eq('id', resourceId.trim())
+      .maybeSingle();
+    return { exists: Boolean(data), title: data?.title || '' };
+  }
+
+  const { data } = await supabase
+    .from('artworks')
+    .select('id, title')
+    .eq('id', resourceId.trim())
+    .maybeSingle();
+  return { exists: Boolean(data), title: data?.title || '' };
 }
 
 export async function insertAuditLog(entry: {
@@ -429,7 +687,8 @@ export async function insertAuditLog(entry: {
     .single();
 
   if (error || !data) {
-    throw new Error(`Error registrando audit_log: ${error?.message || 'desconocido'}`);
+    console.error('Error registrando audit_log:', error?.message);
+    throw new Error('No se pudo registrar el evento de auditoría.');
   }
   return data as AuditLogRecord;
 }
@@ -438,7 +697,7 @@ export async function lookupDisputeEvidence(query: string): Promise<{
   customer: CustomerRecord | null;
   logs: AuditLogRecord[];
 }> {
-  const cleanQuery = query.trim();
+  const cleanQuery = query.trim().slice(0, 254);
   if (!cleanQuery) {
     return { customer: null, logs: [] };
   }
@@ -447,34 +706,96 @@ export async function lookupDisputeEvidence(query: string): Promise<{
   const lowerQuery = cleanQuery.toLowerCase();
   const supabase = getSupabaseAdmin();
 
-  const { data: customer } = await supabase
-    .from('customers')
-    .select('*')
-    .or(
-      `license_code.eq.${upperQuery},paypal_order_id.eq.${cleanQuery},email.ilike.${lowerQuery}`
-    )
-    .maybeSingle();
+  let matchedCustomers: CustomerRecord[] = [];
 
-  const orderIdToSearch = customer?.paypal_order_id || cleanQuery;
-  const customerIdToSearch = customer?.id;
-
-  let logsQuery = supabase
-    .from('audit_logs')
-    .select('*')
-    .order('created_at', { ascending: true });
-
-  if (customerIdToSearch) {
-    logsQuery = logsQuery.or(
-      `customer_id.eq.${customerIdToSearch},paypal_order_id.eq.${orderIdToSearch}`
-    );
-  } else {
-    logsQuery = logsQuery.eq('paypal_order_id', orderIdToSearch);
+  if (isValidLicenseCodeFormat(upperQuery)) {
+    const { data } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('license_code', upperQuery)
+      .order('created_at', { ascending: false });
+    if (data && data.length > 0) matchedCustomers = data as CustomerRecord[];
   }
 
-  const { data: logs } = await logsQuery;
+  if (matchedCustomers.length === 0 && isValidCleanEmail(lowerQuery)) {
+    const { data } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('email', lowerQuery)
+      .order('created_at', { ascending: false });
+    if (data && data.length > 0) matchedCustomers = data as CustomerRecord[];
+  }
+
+  if (matchedCustomers.length === 0 && /^[A-Za-z0-9_-]{4,64}$/.test(cleanQuery)) {
+    const { data } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('paypal_order_id', cleanQuery)
+      .order('created_at', { ascending: false });
+    if (data && data.length > 0) matchedCustomers = data as CustomerRecord[];
+  }
+
+  const primaryCustomer = matchedCustomers[0] || null;
+  const logMap = new Map<string, AuditLogRecord>();
+
+  if (matchedCustomers.length > 0) {
+    const customerIds = matchedCustomers.map((c) => c.id);
+    const orderIds = matchedCustomers.map((c) => c.paypal_order_id).filter(Boolean);
+
+    const [byCustomerId, byOrderId, byEmailMeta] = await Promise.all([
+      supabase
+        .from('audit_logs')
+        .select('*')
+        .in('customer_id', customerIds)
+        .order('created_at', { ascending: true }),
+      orderIds.length > 0
+        ? supabase
+            .from('audit_logs')
+            .select('*')
+            .in('paypal_order_id', orderIds)
+            .order('created_at', { ascending: true })
+        : Promise.resolve({ data: [] }),
+      supabase
+        .from('audit_logs')
+        .select('*')
+        .contains('metadata', { email: primaryCustomer.email })
+        .order('created_at', { ascending: true }),
+    ]);
+
+    for (const row of [
+      ...(byCustomerId.data || []),
+      ...(byOrderId.data || []),
+      ...(byEmailMeta.data || []),
+    ]) {
+      logMap.set(row.id, row as AuditLogRecord);
+    }
+  } else if (/^[A-Za-z0-9_-]{4,64}$/.test(cleanQuery)) {
+    const { data } = await supabase
+      .from('audit_logs')
+      .select('*')
+      .eq('paypal_order_id', cleanQuery)
+      .order('created_at', { ascending: true });
+    for (const row of data || []) {
+      logMap.set(row.id, row as AuditLogRecord);
+    }
+  } else if (isValidCleanEmail(lowerQuery)) {
+    const { data } = await supabase
+      .from('audit_logs')
+      .select('*')
+      .contains('metadata', { email: lowerQuery })
+      .order('created_at', { ascending: true });
+    for (const row of data || []) {
+      logMap.set(row.id, row as AuditLogRecord);
+    }
+  }
+
+  const logs = Array.from(logMap.values()).sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
+
   return {
-    customer: (customer as CustomerRecord) || null,
-    logs: (logs as AuditLogRecord[]) || [],
+    customer: primaryCustomer,
+    logs,
   };
 }
 
@@ -487,7 +808,144 @@ export async function listRecentCustomers(): Promise<CustomerRecord[]> {
     .limit(50);
 
   if (error) {
-    throw new Error(`Error listando clientes: ${error.message}`);
+    console.error('Error listando clientes:', error.message);
+    throw new Error('No se pudo consultar la lista de licencias.');
   }
   return (data || []) as CustomerRecord[];
+}
+
+/**
+ * Crea un ticket de soporte real en Supabase (`public.support_messages` y `public.audit_logs`).
+ */
+export async function createSupportMessage(params: {
+  name?: string | null;
+  email: string;
+  subject: string;
+  orderOrLicense?: string | null;
+  message: string;
+  ipAddress: string;
+  userAgent: string;
+}): Promise<SupportMessageRecord> {
+  const supabase = getSupabaseAdmin();
+  const cleanEmail = params.email.trim().toLowerCase();
+  const cleanName = params.name?.trim().slice(0, 120) || null;
+  const cleanSubject = params.subject.trim().slice(0, 140) || 'Soporte de Licencia VIP';
+  const cleanOrderOrLicense = params.orderOrLicense?.trim().slice(0, 80) || null;
+  const cleanMessage = params.message.trim().slice(0, 4000);
+
+  const auditRecord = await insertAuditLog({
+    ipAddress: params.ipAddress,
+    userAgent: params.userAgent,
+    action: 'ADMIN_ACTION',
+    metadata: {
+      operation: 'SUPPORT_TICKET_CREATED',
+      ticket_status: 'open',
+      name: cleanName,
+      email: cleanEmail,
+      subject: cleanSubject,
+      order_or_license: cleanOrderOrLicense,
+      message: cleanMessage,
+    },
+  });
+
+  const { data: tableInserted, error: tableErr } = await supabase
+    .from('support_messages')
+    .insert({
+      id: auditRecord.id,
+      name: cleanName,
+      email: cleanEmail,
+      subject: cleanSubject,
+      order_or_license: cleanOrderOrLicense,
+      message: cleanMessage,
+      ip_address: params.ipAddress,
+      user_agent: params.userAgent,
+      status: 'open',
+    })
+    .select('*')
+    .maybeSingle();
+
+  if (!tableErr && tableInserted) {
+    return tableInserted as SupportMessageRecord;
+  }
+
+  return {
+    id: auditRecord.id,
+    name: cleanName,
+    email: cleanEmail,
+    subject: cleanSubject,
+    order_or_license: cleanOrderOrLicense,
+    message: cleanMessage,
+    ip_address: auditRecord.ip_address,
+    user_agent: auditRecord.user_agent,
+    status: 'open',
+    created_at: auditRecord.created_at,
+  };
+}
+
+export async function listSupportMessages(): Promise<SupportMessageRecord[]> {
+  const supabase = getSupabaseAdmin();
+
+  const { data: tableRows, error: tableErr } = await supabase
+    .from('support_messages')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (!tableErr && tableRows) {
+    return tableRows as SupportMessageRecord[];
+  }
+
+  const { data: auditRows } = await supabase
+    .from('audit_logs')
+    .select('*')
+    .eq('action', 'ADMIN_ACTION')
+    .contains('metadata', { operation: 'SUPPORT_TICKET_CREATED' })
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  return (auditRows || []).map((row) => {
+    const meta = (row.metadata || {}) as Record<string, unknown>;
+    return {
+      id: String(row.id),
+      name: meta.name ? String(meta.name) : null,
+      email: String(meta.email || ''),
+      subject: String(meta.subject || 'Soporte de Licencia VIP'),
+      order_or_license: meta.order_or_license ? String(meta.order_or_license) : null,
+      message: String(meta.message || ''),
+      ip_address: String(row.ip_address || ''),
+      user_agent: String(row.user_agent || ''),
+      status: meta.ticket_status === 'resolved' ? 'resolved' : 'open',
+      created_at: String(row.created_at),
+    };
+  });
+}
+
+export async function updateSupportMessageStatus(
+  id: string,
+  status: 'open' | 'resolved'
+): Promise<void> {
+  const supabase = getSupabaseAdmin();
+
+  await supabase
+    .from('support_messages')
+    .update({ status })
+    .eq('id', id);
+
+  const { data: existingLog } = await supabase
+    .from('audit_logs')
+    .select('id, metadata')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (existingLog) {
+    const updatedMeta = {
+      ...((existingLog.metadata as Record<string, unknown>) || {}),
+      ticket_status: status,
+      updated_at: new Date().toISOString(),
+    };
+    await supabase
+      .from('audit_logs')
+      .update({ metadata: updatedMeta })
+      .eq('id', id);
+  }
 }

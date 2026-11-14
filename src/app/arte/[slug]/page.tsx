@@ -90,6 +90,8 @@ export default async function ArtworkDetailPage({
     },
   };
 
+  const renderParamsEntries = Object.entries(artwork.render_params || {});
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
       <script
@@ -128,14 +130,6 @@ export default async function ArtworkDetailPage({
               sizes="(max-width: 1024px) 100vw, 50vw"
               className="object-cover"
             />
-            <div className="watermark-pattern pointer-events-none absolute inset-0" />
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="-rotate-24 rounded-lg border border-canvas/55 bg-ink/50 px-5 py-2 backdrop-blur-[2px]">
-                <span className="text-xs font-bold uppercase tracking-widest text-canvas">
-                  ArteDigital.click - Vista Previa
-                </span>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -156,25 +150,27 @@ export default async function ArtworkDetailPage({
               master en resolución completa y la ingeniería del prompt.
             </p>
 
-            <div className="mt-6 rounded-2xl border border-ink/15 bg-surface-blue/70 p-5">
-              <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-ink/80">
-                <Sliders className="h-3.5 w-3.5 text-accent" />
-                Parámetros Técnicos de Renderizado
-              </h2>
-              <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
-                {Object.entries(artwork.render_params || {}).map(([key, val]) => (
-                  <div
-                    key={key}
-                    className="rounded-xl border border-ink/15 bg-canvas p-3"
-                  >
-                    <dt className="font-semibold uppercase tracking-wider text-ink/60">
-                      {key}
-                    </dt>
-                    <dd className="mt-1 font-mono font-semibold text-ink">{val}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
+            {renderParamsEntries.length > 0 && (
+              <div className="mt-6 rounded-2xl border border-ink/15 bg-surface-blue/70 p-5">
+                <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-ink/80">
+                  <Sliders className="h-3.5 w-3.5 text-accent" />
+                  Parámetros Técnicos de Renderizado
+                </h2>
+                <dl className="mt-4 grid grid-cols-2 gap-3 text-xs sm:grid-cols-3">
+                  {renderParamsEntries.map(([key, val]) => (
+                    <div
+                      key={key}
+                      className="rounded-xl border border-ink/15 bg-canvas p-3"
+                    >
+                      <dt className="font-semibold uppercase tracking-wider text-ink/60">
+                        {key}
+                      </dt>
+                      <dd className="mt-1 font-mono font-semibold text-ink">{val}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            )}
 
             <div className="mt-6">
               <h2 className="text-xs font-bold uppercase tracking-widest text-ink/80">
@@ -182,18 +178,18 @@ export default async function ArtworkDetailPage({
               </h2>
               <div className="relative mt-2 overflow-hidden rounded-2xl border border-ink/20 bg-surface/65 p-5">
                 <p className="text-xs font-medium text-ink/80">
-                  Inicio visible:{' '}
-                  <span className="font-mono">{artwork.prompt_preview}</span>
+                  Extracto público verificado:{' '}
+                  <span className="font-mono text-ink">{artwork.prompt_preview}</span>
                 </p>
-                <p className="prompt-blurred mt-2 font-mono text-xs leading-relaxed text-ink">
-                  --cref https://cdn.artedigital.click/anchor.png --cw 85 --stylize
-                  250 Hasselblad medium format studio soft lighting aesthetic --ar
-                  4:5 --seed 482910 --v 6.1
-                </p>
-                <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-ink">
-                  <Lock className="h-3.5 w-3.5 text-accent" />
-                  El prompt completo + seed se muestran al instante tras desbloquear
-                  tu acceso.
+                <div className="mt-3 rounded-xl border border-ink/15 bg-canvas/90 p-3.5">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-ink">
+                    <Lock className="h-3.5 w-3.5 shrink-0 text-accent" />
+                    <span>
+                      El bloque de parámetros avanzados de cámara, iluminación y
+                      consistencia está reservado para miembros con licencia activa
+                      en el Área VIP.
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

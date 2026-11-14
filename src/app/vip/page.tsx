@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import {
+  AlertCircle,
   BookOpen,
   Check,
   Copy,
@@ -21,18 +22,20 @@ import { GoogleSignInButton } from '@/components/GoogleSignInButton';
 interface VipCustomerInfo {
   email: string;
   license_code: string;
-  paypal_order_id: string;
   created_at: string;
 }
 
 export default function VipDashboardPage() {
-  const { openCheckout } = useGalleryModal();
+  const { openCheckout, refreshVipSession } = useGalleryModal();
 
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
   const [customer, setCustomer] = useState<VipCustomerInfo | null>(null);
   const [artworks, setArtworks] = useState<ArtworkFull[]>([]);
   const [manuals, setManuals] = useState<ManualItem[]>([]);
+  const [oauthEmailWithoutLicense, setOauthEmailWithoutLicense] = useState<
+    string | null
+  >(null);
 
   const [emailInput, setEmailInput] = useState('');
   const [codeInput, setCodeInput] = useState('');
@@ -44,26 +47,39 @@ export default function VipDashboardPage() {
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('auth_error')) {
+        setLoginError(
+          'No se pudo completar la autenticación con Google. Puedes intentar de nuevo o ingresar con tu Código de Licencia.'
+        );
+      }
+    }
+
     fetch('/api/vip/verify', { cache: 'no-store' })
       .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
         if (!res.ok) {
           setAuthenticated(false);
+          if (data?.oauthEmailWithoutLicense) {
+            setOauthEmailWithoutLicense(String(data.oauthEmailWithoutLicense));
+          }
           setLoading(false);
           return;
         }
-        const data = await res.json();
         if (data.authenticated) {
           setAuthenticated(true);
           setCustomer(data.customer);
           setArtworks(data.artworks || []);
           setManuals(data.manuals || []);
+          refreshVipSession();
         }
         setLoading(false);
       })
       .catch(() => {
         setLoading(false);
       });
-  }, []);
+  }, [refreshVipSession]);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +96,7 @@ export default function VipDashboardPage() {
           licenseCode: codeInput.trim().toUpperCase(),
         }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.authenticated) {
         setLoginError(data.error || 'No se pudo validar tu licencia.');
         setLoginBusy(false);
@@ -90,6 +106,8 @@ export default function VipDashboardPage() {
       setCustomer(data.customer);
       setArtworks(data.artworks || []);
       setManuals(data.manuals || []);
+      setOauthEmailWithoutLicense(null);
+      await refreshVipSession();
     } catch {
       setLoginError('Error de conexión validando acceso VIP.');
     } finally {
@@ -115,21 +133,52 @@ export default function VipDashboardPage() {
       body: JSON.stringify({
         resourceId: artwork.id,
         resourceType: 'prompt_copy',
-        resourceTitle: artwork.title,
       }),
     }).catch(() => {});
   };
 
-  const handleDownloadAsset = (type: 'artwork' | 'manual', id: string, title: string) => {
-    setDownloadStatus(`Generando enlace firmado seguro para "${title}"...`);
-    window.location.href = `/api/vip/download?type=${type}&id=${encodeURIComponent(id)}`;
-    setTimeout(() => setDownloadStatus(null), 4000);
+  const handleDownloadAsset = async (
+    type: 'artwork' | 'manual',
+    id: string,
+    title: string
+  ) => {
+    setDownloadStatus(`Preparando descarga segura de "${title}"...`);
+    try {
+      const res = await fetch(
+        `/api/vip/download?type=${type}&id=${encodeURIComponent(id)}&mode=json`,
+        { cache: 'no-store' }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.signedUrl) {
+        setDownloadStatus(
+          data.error || `No se pudo iniciar la descarga de "${title}".`
+        );
+        return;
+      }
+
+      const link = document.createElement('a');
+      link.href = data.signedUrl;
+      if (data.filename) {
+        link.download = data.filename;
+      }
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setDownloadStatus(`Descarga iniciada: "${title}".`);
+      setTimeout(() => setDownloadStatus(null), 4000);
+    } catch {
+      setDownloadStatus('Error de conexión al solicitar el archivo.');
+    }
   };
 
   const handleLogout = async () => {
     await fetch('/api/vip/logout', { method: 'POST' });
     setAuthenticated(false);
     setCustomer(null);
+    setOauthEmailWithoutLicense(null);
+    await refreshVipSession();
   };
 
   if (loading) {
@@ -137,7 +186,7 @@ export default function VipDashboardPage() {
       <div className="mx-auto flex min-h-[60vh] max-w-4xl flex-col items-center justify-center px-4">
         <Loader2 className="h-8 w-8 animate-spin text-accent" />
         <p className="mt-3 text-sm font-medium text-ink/75">
-          Verificando tu licencia VIP en Supabase...
+          Verificando tu licencia de miembro VIP...
         </p>
       </div>
     );
@@ -160,6 +209,42 @@ export default function VipDashboardPage() {
             el correo electrónico y tu Código de Licencia{' '}
             <code className="font-mono font-semibold">AD-XXXX-XXXX</code>.
           </p>
+
+          {oauthEmailWithoutLicense && (
+            <div className="mt-4 rounded-2xl border border-accent bg-canvas p-4 text-xs text-ink">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                <div>
+                  <p className="font-semibold text-ink">
+                    Has iniciado sesión con Google como{' '}
+                    <span className="underline">{oauthEmailWithoutLicense}</span>,
+                    pero no encontramos una licencia VIP activa asociada a ese
+                    correo.
+                  </p>
+                  <p className="mt-1 text-ink/75">
+                    Si compraste con otro correo, ingresa tu Correo de Compra +
+                    Código AD-XXXX-XXXX abajo, o adquiere tu licencia vitalicia.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="rounded-lg border border-ink/20 bg-surface px-3 py-1.5 font-semibold text-ink hover:bg-surface-blue"
+                    >
+                      Cambiar cuenta de Google
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openCheckout()}
+                      className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-white hover:opacity-90"
+                    >
+                      Adquirir Licencia ($20 USD)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="mt-5">
             <GoogleSignInButton nextPath="/vip" label="Entrar al Área VIP con Google" />
@@ -259,9 +344,7 @@ export default function VipDashboardPage() {
               Bienvenido al Panel VIP de ArteDigital.click
             </h1>
             <p className="mt-1.5 text-sm text-ink/80">
-              Titular: <span className="font-semibold">{customer.email}</span> ·
-              Orden PayPal:{' '}
-              <span className="font-mono text-xs">{customer.paypal_order_id}</span>
+              Titular verificado: <span className="font-semibold">{customer.email}</span>
             </p>
           </div>
 
@@ -320,7 +403,7 @@ export default function VipDashboardPage() {
 
         {manuals.length === 0 ? (
           <p className="mt-4 rounded-2xl border border-ink/15 bg-surface/50 p-6 text-sm text-ink/75">
-            Aún no se han publicado manuales en Supabase Storage.
+            Nuevas guías técnicas en preparación para miembros VIP.
           </p>
         ) : (
           <div className="mt-5 grid gap-5 md:grid-cols-3">
@@ -348,7 +431,7 @@ export default function VipDashboardPage() {
                   className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
                 >
                   <Download className="h-3.5 w-3.5" />
-                  Descargar Guía (Storage Privado)
+                  Descargar Guía ({manual.format})
                 </button>
               </div>
             ))}
@@ -367,7 +450,7 @@ export default function VipDashboardPage() {
 
         {artworks.length === 0 ? (
           <p className="mt-4 rounded-2xl border border-ink/15 bg-surface/50 p-6 text-sm text-ink/75">
-            Aún no hay obras en el catálogo de Supabase.
+            Nuevas obras master en preparación para miembros VIP.
           </p>
         ) : (
           <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -431,7 +514,7 @@ export default function VipDashboardPage() {
                         className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-accent px-3 py-2.5 text-xs font-semibold text-white hover:opacity-90"
                       >
                         <Download className="h-3.5 w-3.5" />
-                        Descargar 4K
+                        Descargar Master
                       </button>
                     </div>
                   </div>

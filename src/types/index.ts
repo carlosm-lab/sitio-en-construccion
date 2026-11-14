@@ -61,6 +61,19 @@ export interface AuditLogRecord {
   created_at: string;
 }
 
+export interface SupportMessageRecord {
+  id: string;
+  name: string | null;
+  email: string;
+  subject: string;
+  order_or_license: string | null;
+  message: string;
+  ip_address: string;
+  user_agent: string;
+  status: 'open' | 'resolved';
+  created_at: string;
+}
+
 export interface CategoryMeta {
   slug: ArtworkCategory;
   name: string;

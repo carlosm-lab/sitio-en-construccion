@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 
 export function GoogleSignInButton({
-  nextPath = '/admin',
+  nextPath = '/vip',
   label = 'Continuar con Google',
   className = '',
 }: {

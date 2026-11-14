@@ -99,6 +99,26 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON public.audit_logs (action);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON public.audit_logs (created_at DESC);
 
 -- ----------------------------------------------------------------------------
+-- 5.1 TABLA: support_messages (Bandeja de Soporte y Contacto)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.support_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT,
+  email TEXT NOT NULL,
+  subject TEXT NOT NULL DEFAULT 'Soporte de Licencia VIP',
+  order_or_license TEXT,
+  message TEXT NOT NULL,
+  ip_address TEXT NOT NULL,
+  user_agent TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'resolved')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_support_messages_email ON public.support_messages (LOWER(email));
+CREATE INDEX IF NOT EXISTS idx_support_messages_status ON public.support_messages (status);
+CREATE INDEX IF NOT EXISTS idx_support_messages_created_at ON public.support_messages (created_at DESC);
+
+-- ----------------------------------------------------------------------------
 -- 6. ROW LEVEL SECURITY (RLS)
 -- ----------------------------------------------------------------------------
 ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
@@ -106,6 +126,7 @@ ALTER TABLE public.artworks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.manuals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.support_messages ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Deny direct public access to admin_users" ON public.admin_users;
 CREATE POLICY "Deny direct public access to admin_users"
@@ -137,8 +158,15 @@ CREATE POLICY "Deny direct public access to audit_logs"
   TO anon, authenticated
   USING (FALSE);
 
--- Vista segura para consultas públicas (solo columnas no sensibles)
-CREATE OR REPLACE VIEW public.artworks_public AS
+DROP POLICY IF EXISTS "Deny direct public access to support_messages" ON public.support_messages;
+CREATE POLICY "Deny direct public access to support_messages"
+  ON public.support_messages FOR ALL
+  TO anon, authenticated
+  USING (FALSE);
+
+-- Vista segura con security_invoker para consultas públicas (solo columnas no sensibles)
+CREATE OR REPLACE VIEW public.artworks_public
+WITH (security_invoker = true) AS
 SELECT
   id,
   title,
@@ -156,12 +184,15 @@ GRANT SELECT ON public.artworks_public TO anon, authenticated;
 -- ----------------------------------------------------------------------------
 -- 7. BUCKETS REALES DE SUPABASE STORAGE
 -- ----------------------------------------------------------------------------
-INSERT INTO storage.buckets (id, name, public)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES
-  ('watermarked-art', 'watermarked-art', TRUE),
-  ('vip-highres-art', 'vip-highres-art', FALSE),
-  ('vip-manuals', 'vip-manuals', FALSE)
-ON CONFLICT (id) DO NOTHING;
+  ('watermarked-art', 'watermarked-art', TRUE, 15728640, ARRAY['image/jpeg', 'image/png', 'image/webp']),
+  ('vip-highres-art', 'vip-highres-art', FALSE, 52428800, ARRAY['image/jpeg', 'image/png', 'image/webp']),
+  ('vip-manuals', 'vip-manuals', FALSE, 52428800, ARRAY['application/pdf', 'application/zip', 'application/x-zip-compressed'])
+ON CONFLICT (id) DO UPDATE SET
+  public = EXCLUDED.public,
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
 
 DROP POLICY IF EXISTS "Public read watermarked art" ON storage.objects;
 CREATE POLICY "Public read watermarked art"

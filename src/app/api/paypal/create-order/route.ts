@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { insertAuditLog } from '@/lib/data-store';
+import { insertAuditLog, isValidCleanEmail } from '@/lib/data-store';
 import { createPayPalOrder } from '@/lib/paypal';
-import { extractClientForensicInfo } from '@/lib/request-info';
+import { checkRateLimit, extractClientForensicInfo } from '@/lib/request-info';
 import { TERMS_VERSION } from '@/lib/constants';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => null);
+    const forensic = extractClientForensicInfo(req);
+    const rate = checkRateLimit(`paypal-create:${forensic.ipAddress}`, 12, 60_000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        {
+          error: `Demasiadas solicitudes. Por favor espera ${rate.retryAfterSeconds} segundos.`,
+        },
+        { status: 429 }
+      );
+    }
 
+    const body = await req.json().catch(() => null);
     if (!body || typeof body !== 'object') {
       return NextResponse.json(
         { error: 'Payload JSON inválido.' },
@@ -32,11 +42,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || typeof email !== 'string' || !emailRegex.test(email.trim())) {
+    if (!email || typeof email !== 'string' || !isValidCleanEmail(email)) {
       return NextResponse.json(
         {
-          error: 'Introduce una dirección de correo electrónico válida para emitir tu licencia.',
+          error:
+            'Introduce una dirección de correo electrónico válida para emitir tu licencia.',
           code: 'INVALID_EMAIL',
         },
         { status: 400 }
@@ -44,7 +54,6 @@ export async function POST(req: NextRequest) {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const forensic = extractClientForensicInfo(req);
     const termsAcceptedAt = new Date().toISOString();
 
     const order = await createPayPalOrder(normalizedEmail);
@@ -72,10 +81,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('Error en /api/paypal/create-order:', error);
-    const message =
-      error instanceof Error
-        ? error.message
-        : 'Error interno creando la orden en PayPal.';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: 'No fue posible crear la orden en PayPal en este momento.' },
+      { status: 500 }
+    );
   }
 }

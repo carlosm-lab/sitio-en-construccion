@@ -8,8 +8,8 @@ function getPayPalBaseUrl(env: PayPalEnv): string {
     : 'https://api-m.sandbox.paypal.com';
 }
 
-function getPreferredEnv(): PayPalEnv {
-  return process.env.PAYPAL_MODE === 'live' ? 'live' : 'sandbox';
+function getConfiguredEnv(): PayPalEnv {
+  return process.env.PAYPAL_MODE === 'sandbox' ? 'sandbox' : 'live';
 }
 
 export interface PayPalTokenResult {
@@ -19,44 +19,39 @@ export interface PayPalTokenResult {
 }
 
 export async function getPayPalAccessToken(): Promise<PayPalTokenResult> {
-  const clientId = process.env.PAYPAL_CLIENT_ID;
-  const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+  const clientId = process.env.PAYPAL_CLIENT_ID?.trim();
+  const clientSecret = process.env.PAYPAL_CLIENT_SECRET?.trim();
 
   if (!clientId || !clientSecret) {
-    throw new Error(
-      'Faltan PAYPAL_CLIENT_ID o PAYPAL_CLIENT_SECRET en las variables de entorno.'
-    );
+    throw new Error('Pasarela de pago no configurada en el servidor.');
   }
 
-  const primaryEnv = getPreferredEnv();
-  const fallbackEnv: PayPalEnv = primaryEnv === 'sandbox' ? 'live' : 'sandbox';
+  const env = getConfiguredEnv();
+  const baseUrl = getPayPalBaseUrl(env);
   const authHeader = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
-  for (const env of [primaryEnv, fallbackEnv]) {
-    const baseUrl = getPayPalBaseUrl(env);
-    const res = await fetch(`${baseUrl}/v1/oauth2/token`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${authHeader}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: 'grant_type=client_credentials',
-      cache: 'no-store',
-    });
+  const res = await fetch(`${baseUrl}/v1/oauth2/token`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${authHeader}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: 'grant_type=client_credentials',
+    cache: 'no-store',
+  });
 
-    if (res.ok) {
-      const data = (await res.json()) as { access_token: string };
-      return {
-        accessToken: data.access_token,
-        baseUrl,
-        env,
-      };
-    }
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    console.error(`Error OAuth PayPal (${env} - ${res.status}):`, errText);
+    throw new Error('No fue posible conectar con PayPal en este momento.');
   }
 
-  throw new Error(
-    'No fue posible autenticar con PayPal REST API. Verifica PAYPAL_CLIENT_ID y PAYPAL_CLIENT_SECRET.'
-  );
+  const data = (await res.json()) as { access_token: string };
+  return {
+    accessToken: data.access_token,
+    baseUrl,
+    env,
+  };
 }
 
 export interface CreatePayPalOrderResponse {
@@ -67,13 +62,14 @@ export interface CreatePayPalOrderResponse {
 
 export async function createPayPalOrder(buyerEmail: string): Promise<CreatePayPalOrderResponse> {
   const { accessToken, baseUrl, env } = await getPayPalAccessToken();
+  const normalizedEmail = buyerEmail.trim().toLowerCase().slice(0, 127);
 
   const payload = {
     intent: 'CAPTURE',
     purchase_units: [
       {
         description: PAYPAL_ITEM_DESCRIPTION,
-        custom_id: buyerEmail.slice(0, 127),
+        custom_id: normalizedEmail,
         amount: {
           currency_code: 'USD',
           value: MEMBERSHIP_PRICE_USD,
@@ -118,16 +114,15 @@ export async function createPayPalOrder(buyerEmail: string): Promise<CreatePayPa
     cache: 'no-store',
   });
 
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(
-      `PayPal create-order error (${res.status}): ${JSON.stringify(data)}`
-    );
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data?.id) {
+    console.error(`PayPal create-order error (${res.status}):`, data);
+    throw new Error('No se pudo inicializar la orden de pago en PayPal.');
   }
 
   return {
-    id: data.id,
-    status: data.status,
+    id: String(data.id),
+    status: String(data.status || 'CREATED'),
     env,
   };
 }
@@ -135,10 +130,13 @@ export async function createPayPalOrder(buyerEmail: string): Promise<CreatePayPa
 export interface CapturePayPalOrderResult {
   orderId: string;
   status: string;
+  captureStatus: string | null;
+  captureAmount: string | null;
+  captureCurrency: string | null;
+  customId: string | null;
   payerId: string | null;
   payerEmail: string | null;
   captureId: string | null;
-  raw: Record<string, unknown>;
 }
 
 export async function capturePayPalOrder(
@@ -146,32 +144,42 @@ export async function capturePayPalOrder(
 ): Promise<CapturePayPalOrderResult> {
   const { accessToken, baseUrl } = await getPayPalAccessToken();
 
-  const res = await fetch(`${baseUrl}/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-      Prefer: 'return=representation',
-    },
-    cache: 'no-store',
-  });
+  const res = await fetch(
+    `${baseUrl}/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      },
+      cache: 'no-store',
+    }
+  );
 
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(
-      `PayPal capture-order error (${res.status}): ${JSON.stringify(data)}`
-    );
+    console.error(`PayPal capture-order error (${res.status}):`, data);
+    throw new Error('No se pudo confirmar la captura del pago con PayPal.');
   }
 
-  const captureId =
-    data?.purchase_units?.[0]?.payments?.captures?.[0]?.id ?? null;
+  const unit = data?.purchase_units?.[0];
+  const capture = unit?.payments?.captures?.[0];
 
   return {
-    orderId: data.id || orderId,
-    status: data.status,
-    payerId: data?.payer?.payer_id ?? null,
-    payerEmail: data?.payer?.email_address ?? null,
-    captureId,
-    raw: data,
+    orderId: String(data.id || orderId),
+    status: String(data.status || ''),
+    captureStatus: capture?.status ? String(capture.status) : null,
+    captureAmount: capture?.amount?.value ? String(capture.amount.value) : null,
+    captureCurrency: capture?.amount?.currency_code
+      ? String(capture.amount.currency_code)
+      : null,
+    customId:
+      (unit?.custom_id && String(unit.custom_id)) ||
+      (capture?.custom_id && String(capture.custom_id)) ||
+      null,
+    payerId: data?.payer?.payer_id ? String(data.payer.payer_id) : null,
+    payerEmail: data?.payer?.email_address ? String(data.payer.email_address) : null,
+    captureId: capture?.id ? String(capture.id) : null,
   };
 }

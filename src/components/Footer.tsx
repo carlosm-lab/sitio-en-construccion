@@ -93,14 +93,6 @@ export function Footer() {
                 soporte@artedigital.click
               </a>
             </p>
-            <div className="mt-4">
-              <Link
-                href="/admin"
-                className="text-xs font-medium text-ink/70 underline hover:text-accent"
-              >
-                Administración (Google OAuth)
-              </Link>
-            </div>
           </div>
         </div>
 

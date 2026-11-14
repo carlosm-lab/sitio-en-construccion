@@ -34,8 +34,13 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function CheckoutModal() {
   const router = useRouter();
-  const { isCheckoutOpen, selectedArtworkTitle, closeCheckout, openLogin } =
-    useGalleryModal();
+  const {
+    isCheckoutOpen,
+    selectedArtworkTitle,
+    closeCheckout,
+    openLogin,
+    refreshVipSession,
+  } = useGalleryModal();
 
   const [email, setEmail] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -158,6 +163,7 @@ export function CheckoutModal() {
             setIsProcessing(false);
             return;
           }
+          await refreshVipSession();
           closeCheckout();
           router.push('/vip');
           router.refresh();
@@ -185,7 +191,7 @@ export function CheckoutModal() {
         buttons.close().catch(() => {});
       }
     };
-  }, [isCheckoutOpen, isUnlocked, sdkReady, closeCheckout, router]);
+  }, [isCheckoutOpen, isUnlocked, sdkReady, closeCheckout, refreshVipSession, router]);
 
   if (!isCheckoutOpen) return null;
 

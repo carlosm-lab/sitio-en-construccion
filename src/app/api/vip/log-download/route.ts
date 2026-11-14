@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { insertAuditLog } from '@/lib/data-store';
-import { extractClientForensicInfo } from '@/lib/request-info';
+import { insertAuditLog, verifyVipResourceExists } from '@/lib/data-store';
+import { checkRateLimit, extractClientForensicInfo } from '@/lib/request-info';
 import { resolveVipCustomer } from '@/lib/vip-auth';
 
 export async function POST(req: NextRequest) {
@@ -10,15 +10,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Sesión VIP no autorizada.' }, { status: 401 });
     }
 
+    const forensic = extractClientForensicInfo(req);
+    const rate = checkRateLimit(`vip-log:${forensic.ipAddress}`, 30, 60_000);
+    if (!rate.allowed) {
+      return NextResponse.json({ error: 'Límite de eventos alcanzado.' }, { status: 429 });
+    }
+
     const { customer } = resolved;
     const body = await req.json().catch(() => ({}));
-    const { resourceId, resourceType, resourceTitle } = body as {
+    const { resourceId, resourceType } = body as {
       resourceId?: string;
       resourceType?: string;
-      resourceTitle?: string;
     };
 
-    const forensic = extractClientForensicInfo(req);
+    if (!resourceId || typeof resourceId !== 'string') {
+      return NextResponse.json({ error: 'resourceId válido requerido.' }, { status: 400 });
+    }
+
+    const allowedType =
+      resourceType === 'manual_pdf'
+        ? 'manual_pdf'
+        : resourceType === 'high_res_artwork'
+        ? 'high_res_artwork'
+        : 'prompt_copy';
+
+    const verification = await verifyVipResourceExists(resourceId, allowedType);
+    if (!verification.exists) {
+      return NextResponse.json(
+        { error: 'El recurso solicitado no existe en el catálogo.' },
+        { status: 404 }
+      );
+    }
+
     const log = await insertAuditLog({
       customerId: customer.id,
       paypalOrderId: customer.paypal_order_id,
@@ -28,9 +51,9 @@ export async function POST(req: NextRequest) {
       metadata: {
         license_code: customer.license_code,
         email: customer.email,
-        resource_id: resourceId || 'unknown',
-        resource_type: resourceType || 'prompt_copy',
-        resource_title: resourceTitle || 'Recurso VIP',
+        resource_id: resourceId.trim(),
+        resource_type: allowedType,
+        resource_title: verification.title,
         downloaded_at: new Date().toISOString(),
       },
     });
@@ -38,6 +61,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ logged: true, logId: log.id });
   } catch (error) {
     console.error('Error en /api/vip/log-download:', error);
-    return NextResponse.json({ error: 'Error registrando descarga.' }, { status: 500 });
+    return NextResponse.json({ error: 'Error registrando evento.' }, { status: 500 });
   }
 }

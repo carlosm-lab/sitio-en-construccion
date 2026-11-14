@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
     const { customer } = resolved;
     const type = req.nextUrl.searchParams.get('type');
     const id = req.nextUrl.searchParams.get('id');
+    const mode = req.nextUrl.searchParams.get('mode');
 
     if (!type || !id) {
       return NextResponse.json(
@@ -43,10 +44,11 @@ export async function GET(req: NextRequest) {
       }
 
       const ext = art.high_res_path.split('.').pop() || 'png';
+      const filename = `${art.slug}-ArteDigital-Master.${ext}`;
       const signedUrl = await createSignedAssetUrl(
         BUCKET_HIGHRES,
         art.high_res_path,
-        `${art.slug}-ArteDigital-Master.${ext}`
+        filename
       );
 
       await insertAuditLog({
@@ -66,6 +68,9 @@ export async function GET(req: NextRequest) {
         },
       });
 
+      if (mode === 'json') {
+        return NextResponse.json({ signedUrl, filename });
+      }
       return NextResponse.redirect(signedUrl);
     }
 
@@ -80,10 +85,11 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Manual no encontrado.' }, { status: 404 });
       }
 
+      const filename = manual.file_name || 'Manual-ArteDigital.pdf';
       const signedUrl = await createSignedAssetUrl(
         BUCKET_MANUALS,
         manual.file_path,
-        manual.file_name || 'Manual-ArteDigital.pdf'
+        filename
       );
 
       await insertAuditLog({
@@ -103,6 +109,9 @@ export async function GET(req: NextRequest) {
         },
       });
 
+      if (mode === 'json') {
+        return NextResponse.json({ signedUrl, filename });
+      }
       return NextResponse.redirect(signedUrl);
     }
 
@@ -110,7 +119,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error('Error en /api/vip/download:', error);
     return NextResponse.json(
-      { error: 'Error generando descarga segura desde Supabase Storage.' },
+      { error: 'No se pudo generar el enlace seguro de descarga.' },
       { status: 500 }
     );
   }

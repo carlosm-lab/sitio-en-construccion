@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { CheckCircle2, Loader2, Mail, Send } from 'lucide-react';
 
 export default function ContactoPage() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [licenseCode, setLicenseCode] = useState('');
   const [subject, setSubject] = useState('Soporte de Licencia VIP');
@@ -22,9 +23,15 @@ export default function ContactoPage() {
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, licenseCode, subject, message }),
+        body: JSON.stringify({
+          name: name.trim() || undefined,
+          email: email.trim(),
+          licenseCode: licenseCode.trim() || undefined,
+          subject,
+          message: message.trim(),
+        }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setErrorMsg(data.error || 'No se pudo enviar tu mensaje.');
       } else {
@@ -79,22 +86,41 @@ export default function ContactoPage() {
             onSubmit={handleSubmit}
             className="space-y-4 rounded-3xl border border-ink/15 bg-surface-blue/65 p-6 sm:p-8"
           >
-            <div>
-              <label
-                htmlFor="contact-email"
-                className="block text-xs font-semibold uppercase tracking-wider text-ink/80"
-              >
-                Tu Correo Electrónico *
-              </label>
-              <input
-                id="contact-email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@correo.com"
-                className="mt-1.5 w-full rounded-xl border border-ink/25 bg-white px-4 py-3 text-sm text-ink focus:border-accent focus:outline-none"
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="contact-name"
+                  className="block text-xs font-semibold uppercase tracking-wider text-ink/80"
+                >
+                  Tu Nombre (Opcional)
+                </label>
+                <input
+                  id="contact-name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Tu nombre"
+                  className="mt-1.5 w-full rounded-xl border border-ink/25 bg-white px-4 py-3 text-sm text-ink focus:border-accent focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="contact-email"
+                  className="block text-xs font-semibold uppercase tracking-wider text-ink/80"
+                >
+                  Tu Correo Electrónico *
+                </label>
+                <input
+                  id="contact-email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="tu@correo.com"
+                  className="mt-1.5 w-full rounded-xl border border-ink/25 bg-white px-4 py-3 text-sm text-ink focus:border-accent focus:outline-none"
+                />
+              </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -103,7 +129,7 @@ export default function ContactoPage() {
                   htmlFor="contact-code"
                   className="block text-xs font-semibold uppercase tracking-wider text-ink/80"
                 >
-                  Código de Licencia (Opcional)
+                  Código u Orden PayPal (Opcional)
                 </label>
                 <input
                   id="contact-code"
@@ -147,6 +173,7 @@ export default function ContactoPage() {
                 id="contact-message"
                 rows={4}
                 required
+                minLength={10}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Describe brevemente tu consulta o número de orden de PayPal..."

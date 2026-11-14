@@ -8,7 +8,7 @@ export default function Loading() {
         <Loader2 className="h-6 w-6 animate-spin text-accent" />
       </div>
       <p className="mt-4 text-sm font-medium text-ink/75">
-        Cargando recursos desde Supabase...
+        Cargando galería editorial...
       </p>
     </div>
   );

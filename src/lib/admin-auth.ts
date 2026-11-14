@@ -7,7 +7,8 @@ export interface VerifiedAdmin {
 
 /**
  * Verifica criptográficamente en el servidor que el solicitante tiene una sesión
- * Google OAuth válida en Supabase Auth Y que su correo figura en `public.admin_users`.
+ * Google OAuth válida Y que su correo está autorizado como administrador.
+ * Si el usuario inició sesión con una cuenta no autorizada, cierra su sesión automáticamente.
  */
 export async function requireAdminUser(): Promise<
   | { ok: true; admin: VerifiedAdmin }
@@ -24,7 +25,7 @@ export async function requireAdminUser(): Promise<
       return {
         ok: false,
         status: 401,
-        error: 'Sesión no iniciada. Inicia sesión con tu cuenta de Google autorizada.',
+        error: 'Sesión no iniciada. Inicia sesión con una cuenta autorizada.',
       };
     }
 
@@ -34,7 +35,7 @@ export async function requireAdminUser(): Promise<
     const { data: adminRow } = await supabaseAdmin
       .from('admin_users')
       .select('id, email, role')
-      .ilike('email', email)
+      .eq('email', email)
       .maybeSingle();
 
     const envAllowed = (process.env.ADMIN_ALLOWED_EMAILS || '')
@@ -43,11 +44,12 @@ export async function requireAdminUser(): Promise<
       .filter(Boolean);
 
     if (!adminRow && !envAllowed.includes(email)) {
+      await supabaseSsr.auth.signOut().catch(() => {});
       return {
         ok: false,
         status: 403,
         email,
-        error: `La cuenta ${email} no tiene permisos de administrador en public.admin_users.`,
+        error: 'La cuenta seleccionada no cuenta con permisos de administración.',
       };
     }
 
@@ -59,11 +61,11 @@ export async function requireAdminUser(): Promise<
       },
     };
   } catch (err) {
-    console.error('Error verificando sesión Google OAuth admin:', err);
+    console.error('Error verificando sesión admin:', err);
     return {
       ok: false,
       status: 401,
-      error: 'No fue posible validar la sesión de administrador.',
+      error: 'No fue posible validar la sesión.',
     };
   }
 }

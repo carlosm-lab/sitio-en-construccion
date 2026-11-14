@@ -2,20 +2,19 @@ import crypto from 'crypto';
 import { NextRequest } from 'next/server';
 
 export const VIP_COOKIE_NAME = 'artedigital_vip_session';
+export const VIP_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 días
+const VIP_SESSION_MAX_AGE_MS = VIP_SESSION_MAX_AGE_SECONDS * 1000;
 
-interface VipCookiePayload {
+export interface VipCookiePayload {
   email: string;
   licenseCode: string;
   issuedAt: string;
 }
 
 function getSigningSecret(): string {
-  const secret =
-    process.env.VIP_SESSION_SECRET ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.PAYPAL_CLIENT_SECRET;
-  if (!secret) {
-    throw new Error('VIP_SESSION_SECRET no configurado en el servidor.');
+  const secret = process.env.VIP_SESSION_SECRET?.trim();
+  if (!secret || secret.length < 16) {
+    throw new Error('VIP_SESSION_SECRET no está configurado correctamente en el servidor.');
   }
   return secret;
 }
@@ -32,23 +31,41 @@ export function signVipSessionToken(payload: VipCookiePayload): string {
 export function verifyVipSessionToken(token: string | undefined | null): VipCookiePayload | null {
   if (!token || !token.includes('.')) return null;
 
-  const [encoded, providedSig] = token.split('.');
+  const parts = token.split('.');
+  if (parts.length !== 2) return null;
+  const [encoded, providedSig] = parts;
   if (!encoded || !providedSig) return null;
 
-  const expectedSig = crypto
-    .createHmac('sha256', getSigningSecret())
-    .update(encoded)
-    .digest('base64url');
-
-  const bufA = Buffer.from(providedSig);
-  const bufB = Buffer.from(expectedSig);
-  if (bufA.length !== bufB.length || !crypto.timingSafeEqual(bufA, bufB)) {
-    return null;
-  }
-
   try {
-    const parsed = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf-8')) as VipCookiePayload;
-    if (!parsed.email || !parsed.licenseCode) return null;
+    const expectedSig = crypto
+      .createHmac('sha256', getSigningSecret())
+      .update(encoded)
+      .digest('base64url');
+
+    const bufA = Buffer.from(providedSig);
+    const bufB = Buffer.from(expectedSig);
+    if (bufA.length !== bufB.length || !crypto.timingSafeEqual(bufA, bufB)) {
+      return null;
+    }
+
+    const parsed = JSON.parse(
+      Buffer.from(encoded, 'base64url').toString('utf-8')
+    ) as VipCookiePayload;
+
+    if (!parsed.email || !parsed.licenseCode || !parsed.issuedAt) {
+      return null;
+    }
+
+    const issuedTime = Date.parse(parsed.issuedAt);
+    if (!Number.isFinite(issuedTime)) {
+      return null;
+    }
+
+    const now = Date.now();
+    if (issuedTime > now + 5 * 60 * 1000 || now - issuedTime > VIP_SESSION_MAX_AGE_MS) {
+      return null;
+    }
+
     return parsed;
   } catch {
     return null;

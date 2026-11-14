@@ -15,7 +15,7 @@ export default function robots(): MetadataRoute.Robots {
           '/politica-de-privacidad',
           '/contacto',
         ],
-        disallow: ['/api/', '/vip', '/admin', '/auth/'],
+        disallow: ['/api/', '/vip', '/auth/'],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,

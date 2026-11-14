@@ -6,10 +6,6 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'ztjeppqlqkmfuxfdfgkx.supabase.co',
       },
-      {
-        protocol: 'https',
-        hostname: '**.supabase.co',
-      },
     ],
   },
   async headers() {
@@ -28,6 +24,37 @@ const nextConfig = {
           {
             key: 'X-Frame-Options',
             value: 'DENY',
+          },
+        ],
+      },
+      {
+        source: '/admin/:path*',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow, noarchive',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'no-store, max-age=0',
+          },
+        ],
+      },
+      {
+        source: '/vip/:path*',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow',
+          },
+        ],
+      },
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow',
           },
         ],
       },

@@ -5,7 +5,6 @@ import {
   Check,
   FileText,
   Layers,
-  Lock,
   ShieldCheck,
   Sparkles,
 } from 'lucide-react';
@@ -13,6 +12,7 @@ import { getManuals, getPublicArtworks } from '@/lib/data-store';
 import { CATEGORIES, SITE_URL } from '@/lib/constants';
 import { GalleryExplorer } from '@/components/GalleryExplorer';
 import {
+  ManualCardLockAction,
   MemberAccessButton,
   UnlockPrimaryButton,
 } from '@/components/HeroTriggerButtons';
@@ -114,7 +114,7 @@ export default async function HomePage() {
         ))}
       </section>
 
-      {/* Muro Público Real desde Supabase */}
+      {/* Muro Público Editorial */}
       <div className="mt-14">
         <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
           <div>
@@ -147,7 +147,7 @@ export default async function HomePage() {
             </h2>
             <p className="mt-1.5 max-w-2xl text-sm text-ink/75">
               Incluidos sin costo adicional dentro de tu acceso único de $20 USD.
-              Descarga inmediata desde Supabase Storage en el Área VIP.
+              Descarga digital inmediata en el Área VIP.
             </p>
           </div>
           <UnlockPrimaryButton label="Desbloquear Manuales ($20 USD)" />
@@ -156,7 +156,7 @@ export default async function HomePage() {
         {manuals.length === 0 ? (
           <div className="mt-6 rounded-2xl border border-ink/15 bg-canvas p-8 text-center">
             <p className="text-sm font-medium text-ink/75">
-              Los manuales técnicos en PDF cargados desde <Link href="/admin" className="font-semibold text-accent underline">/admin</Link> aparecerán aquí automáticamente.
+              Nuevas ediciones de manuales técnicos en preparación para miembros VIP.
             </p>
           </div>
         ) : (
@@ -182,18 +182,11 @@ export default async function HomePage() {
                   </p>
                 </div>
 
-                <div className="relative mt-5 overflow-hidden rounded-xl border border-ink/15 bg-surface/75 p-3">
-                  <div className="prompt-blurred flex items-center justify-between text-xs font-semibold text-ink">
-                    <span>Descargar_Manual_VIP.pdf</span>
-                    <span>Archivo Seguro</span>
-                  </div>
-                  <div className="absolute inset-0 flex items-center justify-center bg-surface/65">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink">
-                      <Lock className="h-3.5 w-3.5 text-accent" />
-                      Bloqueado (Solo VIP)
-                    </span>
-                  </div>
-                </div>
+                <ManualCardLockAction
+                  manualTitle={manual.title}
+                  format={manual.format}
+                  pagesCount={manual.pages_count}
+                />
               </div>
             ))}
           </div>

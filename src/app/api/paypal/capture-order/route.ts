@@ -1,12 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { insertAuditLog, upsertCustomerAfterPayment } from '@/lib/data-store';
+import {
+  insertAuditLog,
+  isValidCleanEmail,
+  upsertCustomerAfterPayment,
+} from '@/lib/data-store';
 import { capturePayPalOrder } from '@/lib/paypal';
-import { extractClientForensicInfo } from '@/lib/request-info';
-import { TERMS_VERSION } from '@/lib/constants';
-import { signVipSessionToken, VIP_COOKIE_NAME } from '@/lib/vip-session';
+import { checkRateLimit, extractClientForensicInfo } from '@/lib/request-info';
+import { MEMBERSHIP_PRICE_USD, TERMS_VERSION } from '@/lib/constants';
+import {
+  signVipSessionToken,
+  VIP_COOKIE_NAME,
+  VIP_SESSION_MAX_AGE_SECONDS,
+} from '@/lib/vip-session';
 
 export async function POST(req: NextRequest) {
   try {
+    const forensic = extractClientForensicInfo(req);
+    const rate = checkRateLimit(`paypal-capture:${forensic.ipAddress}`, 10, 60_000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Demasiados intentos de confirmación. Espera unos segundos.' },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json().catch(() => null);
     if (!body || typeof body !== 'object') {
       return NextResponse.json({ error: 'Payload inválido.' }, { status: 400 });
@@ -20,8 +37,8 @@ export async function POST(req: NextRequest) {
       termsAcceptedAt?: string;
     };
 
-    if (!orderId || typeof orderId !== 'string') {
-      return NextResponse.json({ error: 'orderId de PayPal requerido.' }, { status: 400 });
+    if (!orderId || typeof orderId !== 'string' || !/^[A-Za-z0-9_-]{5,64}$/.test(orderId)) {
+      return NextResponse.json({ error: 'orderId de PayPal inválido.' }, { status: 400 });
     }
 
     if (termsAccepted !== true || termsVersion !== TERMS_VERSION) {
@@ -31,22 +48,47 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const forensic = extractClientForensicInfo(req);
+    if (email && !isValidCleanEmail(email)) {
+      return NextResponse.json(
+        { error: 'Formato de correo electrónico inválido.' },
+        { status: 400 }
+      );
+    }
+
     const capture = await capturePayPalOrder(orderId);
 
-    if (capture.status !== 'COMPLETED') {
+    if (
+      capture.status !== 'COMPLETED' ||
+      capture.captureStatus !== 'COMPLETED' ||
+      capture.captureAmount !== MEMBERSHIP_PRICE_USD ||
+      capture.captureCurrency !== 'USD'
+    ) {
       return NextResponse.json(
         {
-          error: `El pago aún no figura como COMPLETED en PayPal (estado actual: ${capture.status}).`,
+          error: 'El pago en PayPal no pudo verificarse como completado por $20.00 USD.',
         },
         { status: 402 }
       );
     }
 
-    const customerEmail = (email || capture.payerEmail || '').trim().toLowerCase();
-    if (!customerEmail) {
+    const requestedEmail = email ? email.trim().toLowerCase() : '';
+    const customIdEmail = capture.customId ? capture.customId.trim().toLowerCase() : '';
+    const payerEmail = capture.payerEmail ? capture.payerEmail.trim().toLowerCase() : '';
+
+    if (requestedEmail && customIdEmail && requestedEmail !== customIdEmail) {
       return NextResponse.json(
-        { error: 'No se pudo determinar el correo electrónico del comprador.' },
+        {
+          error:
+            'El correo proporcionado no coincide con el titular registrado al crear la orden.',
+        },
+        { status: 400 }
+      );
+    }
+
+    const customerEmail = customIdEmail || requestedEmail || payerEmail;
+    if (!customerEmail || !isValidCleanEmail(customerEmail)) {
+      return NextResponse.json(
+        { error: 'No se pudo determinar un correo electrónico válido para la licencia.' },
         { status: 400 }
       );
     }
@@ -67,11 +109,11 @@ export async function POST(req: NextRequest) {
       userAgent: forensic.userAgent,
       action: 'PAYMENT_CAPTURED',
       metadata: {
-        payer_email: capture.payerEmail || customer.email,
+        payer_email: payerEmail || customer.email,
         payer_id: capture.payerId,
         capture_id: capture.captureId,
-        amount_usd: '20.00',
-        currency: 'USD',
+        amount_usd: capture.captureAmount,
+        currency: capture.captureCurrency,
         category: 'DIGITAL_GOODS',
         terms_accepted_at: termsAcceptedAt || verifiedTimestamp,
         terms_version: TERMS_VERSION,
@@ -104,7 +146,6 @@ export async function POST(req: NextRequest) {
       customer: {
         email: customer.email,
         license_code: customer.license_code,
-        paypal_order_id: customer.paypal_order_id,
         created_at: customer.created_at,
       },
     });
@@ -114,14 +155,15 @@ export async function POST(req: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 365,
+      maxAge: VIP_SESSION_MAX_AGE_SECONDS,
     });
 
     return response;
   } catch (error) {
     console.error('Error en /api/paypal/capture-order:', error);
-    const message =
-      error instanceof Error ? error.message : 'Error capturando el pago en PayPal.';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Error procesando la confirmación de pago con PayPal.' },
+      { status: 500 }
+    );
   }
 }

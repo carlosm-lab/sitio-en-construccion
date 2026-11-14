@@ -1,6 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface GalleryContextValue {
   isCheckoutOpen: boolean;
@@ -10,16 +11,52 @@ interface GalleryContextValue {
   isLoginOpen: boolean;
   openLogin: () => void;
   closeLogin: () => void;
+  isVipActive: boolean;
+  vipLicenseCode: string | null;
+  refreshVipSession: () => Promise<void>;
 }
 
 const GalleryContext = createContext<GalleryContextValue | null>(null);
 
 export function GalleryProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [selectedArtworkTitle, setSelectedArtworkTitle] = useState<string | null>(null);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isVipActive, setIsVipActive] = useState(false);
+  const [vipLicenseCode, setVipLicenseCode] = useState<string | null>(null);
+
+  const refreshVipSession = useCallback(async () => {
+    try {
+      const res = await fetch('/api/vip/verify?summary=1', { cache: 'no-store' });
+      if (!res.ok) {
+        setIsVipActive(false);
+        setVipLicenseCode(null);
+        return;
+      }
+      const data = await res.json();
+      if (data?.authenticated && data?.customer?.license_code) {
+        setIsVipActive(true);
+        setVipLicenseCode(String(data.customer.license_code));
+      } else {
+        setIsVipActive(false);
+        setVipLicenseCode(null);
+      }
+    } catch {
+      setIsVipActive(false);
+      setVipLicenseCode(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshVipSession();
+  }, [refreshVipSession]);
 
   const openCheckout = (artworkTitle?: string) => {
+    if (isVipActive) {
+      router.push('/vip');
+      return;
+    }
     setSelectedArtworkTitle(artworkTitle || null);
     setIsLoginOpen(false);
     setIsCheckoutOpen(true);
@@ -31,6 +68,10 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
   };
 
   const openLogin = () => {
+    if (isVipActive) {
+      router.push('/vip');
+      return;
+    }
     setIsCheckoutOpen(false);
     setIsLoginOpen(true);
   };
@@ -49,6 +90,9 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         isLoginOpen,
         openLogin,
         closeLogin,
+        isVipActive,
+        vipLicenseCode,
+        refreshVipSession,
       }}
     >
       {children}

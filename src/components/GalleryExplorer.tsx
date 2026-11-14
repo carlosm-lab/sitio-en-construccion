@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
-import Link from 'next/link';
-import { ImagePlus, Search } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Sparkles, Search } from 'lucide-react';
 import { ArtworkCategory, ArtworkPublic } from '@/types';
 import { CATEGORIES } from '@/lib/constants';
 import { ArtworkCard } from './ArtworkCard';
@@ -24,6 +23,16 @@ export function GalleryExplorer({
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleCount, setVisibleCount] = useState(9);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const qParam = params.get('q');
+      if (qParam) {
+        setSearchQuery(qParam);
+      }
+    }
+  }, []);
+
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return artworks.filter((item) => {
@@ -32,7 +41,8 @@ export function GalleryExplorer({
       const queryMatch =
         !q ||
         item.title.toLowerCase().includes(q) ||
-        item.prompt_preview.toLowerCase().includes(q);
+        item.prompt_preview.toLowerCase().includes(q) ||
+        item.alt_text.toLowerCase().includes(q);
       return catMatch && queryMatch;
     });
   }, [artworks, selectedCategory, searchQuery]);
@@ -87,22 +97,15 @@ export function GalleryExplorer({
       )}
 
       {artworks.length === 0 ? (
-        <div className="rounded-3xl border border-ink/20 bg-surface/60 p-12 text-center">
-          <ImagePlus className="mx-auto h-10 w-10 text-accent" />
+        <div className="rounded-3xl border border-ink/15 bg-surface/60 p-12 text-center">
+          <Sparkles className="mx-auto h-10 w-10 text-accent" />
           <h3 className="mt-4 font-serif text-2xl font-semibold text-ink">
-            Catálogo en vivo conectado a Supabase Storage
+            Colección Editorial en Curaduría
           </h3>
           <p className="mx-auto mt-2 max-w-md text-sm text-ink/75">
-            No hay obras cargadas todavía en la base de datos real. Inicia sesión
-            con tu cuenta de Google en el panel de administración para subir tus
-            primeras imágenes y prompts.
+            Estamos incorporando nuevas obras digitales en alta resolución y
+            parámetros verificados de iluminación a esta colección.
           </p>
-          <Link
-            href="/admin"
-            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-xs font-semibold text-white hover:opacity-90"
-          >
-            Subir Primera Obra en /admin
-          </Link>
         </div>
       ) : displayed.length === 0 ? (
         <div className="rounded-2xl border border-ink/15 bg-surface/50 p-12 text-center">

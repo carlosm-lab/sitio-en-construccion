@@ -8,7 +8,8 @@ import { GoogleSignInButton } from './GoogleSignInButton';
 
 export function MemberLoginModal() {
   const router = useRouter();
-  const { isLoginOpen, closeLogin, openCheckout } = useGalleryModal();
+  const { isLoginOpen, closeLogin, openCheckout, refreshVipSession } =
+    useGalleryModal();
 
   const [email, setEmail] = useState('');
   const [licenseCode, setLicenseCode] = useState('');
@@ -38,6 +39,7 @@ export function MemberLoginModal() {
         return;
       }
 
+      await refreshVipSession();
       closeLogin();
       router.push('/vip');
       router.refresh();
