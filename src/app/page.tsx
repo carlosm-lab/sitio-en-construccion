@@ -25,7 +25,6 @@ import { resolveServerAccess } from '@/lib/vip-auth';
 import { GalleryExplorer } from '@/components/GalleryExplorer';
 import {
   ManualCardLockAction,
-  MemberAccessButton,
   UnlockPrimaryButton,
 } from '@/components/HeroTriggerButtons';
 
@@ -116,36 +115,25 @@ export default async function HomePage() {
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-ink/25 bg-canvas px-3.5 py-1 text-xs font-semibold text-ink">
                 <ShieldCheck className="h-3.5 w-3.5 text-accent" />
-                {access.isAdmin
-                  ? `Modo Administrador Activo (${access.googleUser?.email || access.customer?.email})`
-                  : `Pase de Acceso Total Activo (${access.customer?.email})`}
+                Pase de Acceso Total Activo ({access.googleUser?.email || access.customer?.email})
               </div>
               <h1 className="mt-3 font-serif text-3xl font-semibold text-ink sm:text-4xl">
                 Biblioteca Completa 4K, Prompts y Manuales Desbloqueados
               </h1>
               <p className="mt-2 text-sm leading-relaxed text-ink/80">
-                Tu cuenta tiene acceso total habilitado. Todas las imágenes en
+                Tu cuenta tiene acceso permanente habilitado. Todas las imágenes en
                 alta resolución sin marca de agua, los prompts completos y los
                 manuales PDF están listos para copiar o descargar en un clic.
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              {access.isAdmin && (
-                <Link
-                  href="/admin"
-                  className="inline-flex items-center gap-2 rounded-xl border border-ink/25 bg-canvas px-4 py-3 text-xs font-semibold text-ink transition-colors hover:bg-surface-blue"
-                >
-                  <LayoutDashboard className="h-4 w-4 text-accent" />
-                  Centro de Control Admin
-                </Link>
-              )}
               <Link
                 href="/vip"
                 className="inline-flex items-center gap-2 rounded-xl bg-ink px-5 py-3 text-xs font-semibold text-canvas transition-opacity hover:opacity-90"
               >
-                <LockOpen className="h-4 w-4 text-accent" />
-                Ver Panel de Biblioteca VIP
+                <ShieldCheck className="h-4 w-4 text-accent" />
+                Ir a Mi Biblioteca
               </Link>
             </div>
           </div>
@@ -188,10 +176,6 @@ export default async function HomePage() {
                   <span>Explorar Catálogo</span>
                   <ArrowDown className="h-4 w-4 text-accent" />
                 </a>
-              </div>
-
-              <div className="mt-4 flex justify-center">
-                <MemberAccessButton />
               </div>
 
               <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-ink/10 pt-6 text-xs font-medium text-ink/80">
@@ -477,12 +461,11 @@ export default async function HomePage() {
                 </ul>
               </div>
 
-              <div className="mt-8 space-y-3">
+              <div className="mt-8">
                 <UnlockPrimaryButton
                   label="Activar Pase de Acceso Total — $25 USD"
                   className="w-full"
                 />
-                <MemberAccessButton className="w-full" />
               </div>
             </div>
 

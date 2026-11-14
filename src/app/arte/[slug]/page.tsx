@@ -22,7 +22,6 @@ import { CATEGORY_MAP, MEMBERSHIP_PRICE_USD, SITE_URL } from '@/lib/constants';
 import { resolveServerAccess } from '@/lib/vip-auth';
 import {
   ArtworkDetailUnlockedActions,
-  MemberAccessButton,
   UnlockPrimaryButton,
 } from '@/components/HeroTriggerButtons';
 import { ArtworkFull } from '@/types';
@@ -303,15 +302,12 @@ export default async function ArtworkDetailPage({
                 </li>
               </ul>
 
-              <div className="mt-5 space-y-3">
+              <div className="mt-5">
                 <UnlockPrimaryButton
                   artworkTitle={artwork.title}
                   label="Obtener Pase de Acceso Total — $25 USD"
                   className="w-full"
                 />
-                <div className="flex justify-center pt-1">
-                  <MemberAccessButton />
-                </div>
               </div>
             </div>
           )}

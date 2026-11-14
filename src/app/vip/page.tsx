@@ -9,7 +9,6 @@ import {
   Check,
   Copy,
   Download,
-  LayoutDashboard,
   Loader2,
   LogOut,
   ShieldCheck,
@@ -31,7 +30,6 @@ export default function VipDashboardPage() {
 
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
-  const [isAdminUser, setIsAdminUser] = useState(false);
   const [customer, setCustomer] = useState<VipCustomerInfo | null>(null);
   const [artworks, setArtworks] = useState<ArtworkFull[]>([]);
   const [manuals, setManuals] = useState<ManualItem[]>([]);
@@ -65,7 +63,6 @@ export default function VipDashboardPage() {
           return;
         }
         setAuthenticated(true);
-        setIsAdminUser(Boolean(data.isAdmin));
         setCustomer(data.customer);
         setArtworks(data.artworks || []);
         setManuals(data.manuals || []);
@@ -239,9 +236,7 @@ export default function VipDashboardPage() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-ink bg-canvas px-3 py-1 text-xs font-semibold text-ink">
               <ShieldCheck className="h-3.5 w-3.5 text-accent" />
-              {isAdminUser
-                ? 'Modo Administrador — Acceso Total Habilitado'
-                : 'Pase de Acceso Total Vitalicio Activo'}
+              Pase de Acceso Total Vitalicio Activo
             </div>
             <h1 className="mt-3 font-serif text-3xl font-semibold text-ink sm:text-4xl">
               Biblioteca Completa de ArteDigital.click
@@ -253,15 +248,6 @@ export default function VipDashboardPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {isAdminUser && (
-              <Link
-                href="/admin"
-                className="inline-flex items-center gap-2 rounded-xl border border-ink/25 bg-canvas px-4 py-2.5 text-xs font-semibold text-ink transition-colors hover:bg-surface-blue"
-              >
-                <LayoutDashboard className="h-4 w-4 text-accent" />
-                Centro de Control Admin
-              </Link>
-            )}
             <button
               type="button"
               onClick={handleLogout}

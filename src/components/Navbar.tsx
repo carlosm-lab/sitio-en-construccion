@@ -103,24 +103,15 @@ export function Navbar() {
         </nav>
 
         {/* Acciones Desktop */}
-        <div className="hidden items-center gap-2.5 md:flex">
+        <div className="hidden items-center gap-3 md:flex">
           {hasFullAccess ? (
             <>
-              {isAdmin && (
-                <Link
-                  href="/admin"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-ink/25 bg-surface px-3.5 py-2 text-xs font-semibold text-ink transition-colors hover:bg-surface-blue"
-                >
-                  <LayoutDashboard className="h-3.5 w-3.5 text-accent" />
-                  Panel Admin
-                </Link>
-              )}
               <Link
                 href="/vip"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-ink px-4 py-2 text-xs font-semibold text-canvas transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-ink px-4 py-2.5 text-xs font-semibold text-canvas transition-opacity hover:opacity-90"
               >
                 <ShieldCheck className="h-3.5 w-3.5 text-accent" />
-                {isAdmin ? 'Biblioteca VIP' : 'Mi Biblioteca Activa'}
+                Mi Biblioteca
               </Link>
               <button
                 type="button"
@@ -134,21 +125,22 @@ export function Navbar() {
             </>
           ) : googleUser ? (
             <>
-              <span className="max-w-[180px] truncate rounded-lg border border-ink/15 bg-surface/80 px-3 py-2 text-xs font-medium text-ink">
+              <span className="max-w-[180px] truncate text-xs font-medium text-ink/75">
                 {googleUser.email}
               </span>
               <button
                 type="button"
                 onClick={() => openCheckout()}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
               >
                 <LockOpen className="h-3.5 w-3.5" />
-                Obtener Pase Total
+                Activar Pase — $25 USD
               </button>
               <button
                 type="button"
                 onClick={signOut}
-                className="inline-flex items-center gap-1 rounded-lg border border-ink/20 bg-canvas px-2.5 py-2 text-xs font-medium text-ink/75 hover:text-accent"
+                title="Cerrar sesión"
+                className="inline-flex items-center gap-1 rounded-lg border border-ink/20 bg-canvas p-2 text-xs font-medium text-ink/75 hover:text-accent"
               >
                 <LogOut className="h-3.5 w-3.5" />
               </button>
@@ -158,18 +150,17 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => signInWithGoogle()}
-                className="inline-flex items-center gap-2 rounded-lg border border-ink/25 bg-white px-3.5 py-2 text-xs font-semibold text-ink shadow-sm transition-colors hover:bg-surface"
+                className="px-3 py-2 text-xs font-semibold text-ink/80 transition-colors hover:text-accent"
               >
-                <GoogleGIcon />
-                Entrar con Google
+                Iniciar sesión
               </button>
               <button
                 type="button"
                 onClick={() => openCheckout()}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
               >
                 <LockOpen className="h-3.5 w-3.5" />
-                Obtener Pase Total
+                Obtener Pase — $25 USD
               </button>
             </>
           )}
@@ -229,23 +220,13 @@ export function Navbar() {
             <div className="mt-2 flex flex-col gap-2 border-t border-ink/15 pt-3">
               {hasFullAccess ? (
                 <>
-                  {isAdmin && (
-                    <Link
-                      href="/admin"
-                      onClick={() => setMobileOpen(false)}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-ink/25 bg-surface px-4 py-2.5 text-sm font-semibold text-ink"
-                    >
-                      <LayoutDashboard className="h-4 w-4 text-accent" />
-                      Panel Admin
-                    </Link>
-                  )}
                   <Link
                     href="/vip"
                     onClick={() => setMobileOpen(false)}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-canvas"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-canvas"
                   >
                     <ShieldCheck className="h-4 w-4 text-accent" />
-                    {isAdmin ? 'Ir a Biblioteca VIP' : 'Mi Biblioteca Activa'}
+                    Mi Biblioteca
                   </Link>
                   <button
                     type="button"
@@ -256,7 +237,7 @@ export function Navbar() {
                     className="inline-flex items-center justify-center gap-2 rounded-lg border border-ink/20 bg-canvas px-4 py-2 text-xs font-semibold text-ink/80"
                   >
                     <LogOut className="h-3.5 w-3.5" />
-                    Cerrar sesión ({userEmail})
+                    Cerrar sesión {userEmail ? `(${userEmail})` : ''}
                   </button>
                 </>
               ) : (
@@ -268,10 +249,9 @@ export function Navbar() {
                         setMobileOpen(false);
                         signInWithGoogle();
                       }}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-ink/25 bg-white px-4 py-2.5 text-sm font-semibold text-ink"
+                      className="rounded-lg px-3 py-2 text-left text-sm font-medium text-ink hover:bg-surface"
                     >
-                      <GoogleGIcon />
-                      Entrar con Google
+                      Iniciar sesión con Google
                     </button>
                   ) : (
                     <div className="flex items-center justify-between rounded-lg border border-ink/15 bg-surface px-3 py-2 text-xs text-ink">
@@ -294,10 +274,10 @@ export function Navbar() {
                       setMobileOpen(false);
                       openCheckout();
                     }}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white"
                   >
                     <LockOpen className="h-4 w-4" />
-                    Obtener Pase de Acceso Total
+                    Obtener Pase — $25 USD
                   </button>
                 </>
               )}
