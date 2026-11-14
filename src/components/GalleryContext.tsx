@@ -24,6 +24,7 @@ interface GalleryContextValue {
   closeCheckout: () => void;
   isLoginOpen: boolean;
   openLogin: () => void;
+  openMemberLogin: () => void;
   closeLogin: () => void;
   isVipActive: boolean;
   isAdmin: boolean;
@@ -192,7 +193,7 @@ export function GalleryProvider({
       router.push('/vip');
       return;
     }
-    signInWithGoogle();
+    setIsLoginOpen(true);
   };
 
   const closeLogin = () => {
@@ -208,6 +209,7 @@ export function GalleryProvider({
         closeCheckout,
         isLoginOpen: !hasFullAccess && isLoginOpen,
         openLogin,
+        openMemberLogin: openLogin,
         closeLogin,
         isVipActive,
         isAdmin,

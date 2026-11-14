@@ -1,11 +1,17 @@
-export type ArtworkCategory = 'retratos-ia' | 'concept-art' | 'guias-personajes';
+export type ArtworkCategory =
+  | 'fotografia-editorial'
+  | 'arte-conceptual'
+  | 'ilustracion-digital'
+  | 'retratos-ia'
+  | 'concept-art'
+  | 'guias-personajes';
 
 export interface ArtworkPublic {
   id: string;
   title: string;
   slug: string;
   category: ArtworkCategory;
-  prompt_preview: string;
+  prompt_preview?: string;
   render_params: Record<string, string>;
   watermarked_url: string;
   alt_text: string;
@@ -13,7 +19,7 @@ export interface ArtworkPublic {
 }
 
 export interface ArtworkFull extends ArtworkPublic {
-  prompt_full: string;
+  prompt_full?: string;
   watermarked_path: string;
   high_res_path: string;
   high_res_signed_url?: string;

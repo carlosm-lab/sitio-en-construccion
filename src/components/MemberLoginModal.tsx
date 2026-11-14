@@ -40,7 +40,7 @@ export function MemberLoginModal() {
         </h2>
         <p className="mt-2 text-xs leading-relaxed text-ink/80">
           Conecta tu cuenta de Google en un clic para desbloquear automáticamente
-          todas las obras 4K, prompts y manuales asociados a tu Pase Total.
+          todas las obras de arte digital en resolución 4K y tu licencia comercial permanente.
         </p>
 
         <div className="mt-6">

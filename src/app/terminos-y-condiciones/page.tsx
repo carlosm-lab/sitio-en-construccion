@@ -41,9 +41,8 @@ export default function TerminosPage() {
               inmediata. La adquisición del Pase de Acceso Total ($25.00 USD pago
               único) otorga al usuario acceso personal, vitalicio e intransferible
               a toda la biblioteca privada del sitio, donde se ponen a disposición
-              archivos gráficos de arte digital en alta resolución 4K sin marca de
-              agua, prompts de ingeniería visual y manuales técnicos de
-              consistencia de personajes.
+              archivos gráficos de arte digital y fotografía editorial en alta resolución 4K sin marca de
+              agua y sus fichas artísticas completas.
             </p>
           </section>
 
@@ -62,15 +61,14 @@ export default function TerminosPage() {
 
           <section>
             <h2 className="font-serif text-2xl font-semibold text-ink">
-              3. Alcance de la Licencia de Uso del Arte y Prompts
+              3. Alcance de la Licencia de Uso Comercial y Editorial
             </h2>
             <p className="mt-2">
               El comprador licenciado recibe un derecho mundial, no exclusivo y
               libre de regalías para utilizar, adaptar y publicar las obras
-              descargadas y los resultados generados mediante nuestros prompts en
-              proyectos personales, editoriales, publicitarios, sitios web,
-              diseños comerciales y material audiovisual de marca propia o de
-              clientes.
+              descargadas en proyectos personales, editoriales,
+              publicitarios, sitios web, diseños comerciales, packaging y
+              material audiovisual de marca propia o de clientes.
             </p>
           </section>
 
@@ -82,7 +80,7 @@ export default function TerminosPage() {
               Queda estrictamente prohibido revender, sublicenciar, compartir
               públicamente en repositorios gratuitos, empaquetar en otros bancos de
               imágenes competidores o redistribuir de forma masiva los archivos
-              master, los manuales técnicos o el acceso a la cuenta. La detección
+              master o el acceso a la cuenta. La detección
               de abuso o compartición de cuentas faculta a ArteDigital.click para
               revocar la licencia activa sin derecho a compensación.
             </p>

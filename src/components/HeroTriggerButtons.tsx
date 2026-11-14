@@ -12,7 +12,7 @@ import {
 import { useGalleryModal } from './GalleryContext';
 
 export function UnlockPrimaryButton({
-  label = 'Obtener Pase de Acceso Total — $25 USD',
+  label = 'Obtener Pase Total Vitalicio — $25 USD',
   artworkTitle,
   className = '',
   hideWhenUnlocked = true,
@@ -41,7 +41,6 @@ export function UnlockPrimaryButton({
 }
 
 export function MemberAccessButton(_props?: { className?: string }) {
-  // Eliminado componente redundante de acceso dual para mantener una única llamada a la acción limpia
   return null;
 }
 
@@ -120,27 +119,19 @@ export function ManualCardLockAction({
 
 export function ArtworkDetailUnlockedActions({
   artworkId,
-  promptFull,
+  compositionDetails,
 }: {
   artworkId: string;
-  promptFull: string;
+  compositionDetails?: string;
 }) {
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
-  const handleCopyPrompt = async () => {
-    await navigator.clipboard.writeText(promptFull);
+  const handleCopyDetails = async () => {
+    if (!compositionDetails) return;
+    await navigator.clipboard.writeText(compositionDetails);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
-
-    fetch('/api/vip/log-download', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        resourceId: artworkId,
-        resourceType: 'prompt_copy',
-      }),
-    }).catch(() => {});
   };
 
   const handleDownloadArtwork = async () => {
@@ -167,23 +158,25 @@ export function ArtworkDetailUnlockedActions({
 
   return (
     <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-      <button
-        type="button"
-        onClick={handleCopyPrompt}
-        className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-ink/25 bg-surface px-5 py-3.5 text-sm font-semibold text-ink transition-colors hover:bg-surface-blue"
-      >
-        {copied ? (
-          <>
-            <Check className="h-4 w-4 text-accent" />
-            Prompt Copiado al Portapapeles
-          </>
-        ) : (
-          <>
-            <Copy className="h-4 w-4 text-accent" />
-            Copiar Prompt Exacto
-          </>
-        )}
-      </button>
+      {compositionDetails && (
+        <button
+          type="button"
+          onClick={handleCopyDetails}
+          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-ink/25 bg-surface px-5 py-3.5 text-sm font-semibold text-ink transition-colors hover:bg-surface-blue"
+        >
+          {copied ? (
+            <>
+              <Check className="h-4 w-4 text-accent" />
+              <span>Ficha Copiada al Portapapeles</span>
+            </>
+          ) : (
+            <>
+              <Copy className="h-4 w-4 text-accent" />
+              <span>Copiar Ficha Técnica</span>
+            </>
+          )}
+        </button>
+      )}
 
       <button
         type="button"
@@ -196,7 +189,7 @@ export function ArtworkDetailUnlockedActions({
         ) : (
           <Download className="h-4 w-4" />
         )}
-        Descargar Archivo Master 4K
+        <span>Descargar Archivo Master 4K</span>
       </button>
     </div>
   );

@@ -5,12 +5,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import {
   AlertCircle,
-  BookOpen,
-  Check,
-  Copy,
   Download,
   Loader2,
   LogOut,
+  Palette,
   ShieldCheck,
   Sparkles,
 } from 'lucide-react';
@@ -32,13 +30,10 @@ export default function VipDashboardPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [customer, setCustomer] = useState<VipCustomerInfo | null>(null);
   const [artworks, setArtworks] = useState<ArtworkFull[]>([]);
-  const [manuals, setManuals] = useState<ManualItem[]>([]);
   const [oauthEmailWithoutLicense, setOauthEmailWithoutLicense] = useState<
     string | null
   >(null);
   const [loginError, setLoginError] = useState<string | null>(null);
-
-  const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
 
   useEffect(() => {
@@ -65,7 +60,6 @@ export default function VipDashboardPage() {
         setAuthenticated(true);
         setCustomer(data.customer);
         setArtworks(data.artworks || []);
-        setManuals(data.manuals || []);
         refreshVipSession();
         setLoading(false);
       })
@@ -74,27 +68,12 @@ export default function VipDashboardPage() {
       });
   }, [refreshVipSession]);
 
-  const handleCopyPrompt = async (artwork: ArtworkFull) => {
-    await navigator.clipboard.writeText(artwork.prompt_full);
-    setCopiedPromptId(artwork.id);
-    setTimeout(() => setCopiedPromptId(null), 2200);
-
-    fetch('/api/vip/log-download', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        resourceId: artwork.id,
-        resourceType: 'prompt_copy',
-      }),
-    }).catch(() => {});
-  };
-
   const handleDownloadAsset = async (
     type: 'artwork' | 'manual',
     id: string,
     title: string
   ) => {
-    setDownloadStatus(`Preparando descarga segura de "${title}"...`);
+    setDownloadStatus(`Generando enlace seguro para "${title}"...`);
     try {
       const res = await fetch(
         `/api/vip/download?type=${type}&id=${encodeURIComponent(id)}&mode=json`,
@@ -153,12 +132,11 @@ export default function VipDashboardPage() {
           </div>
 
           <h1 className="mt-4 font-serif text-3xl font-semibold text-ink">
-            Biblioteca Privada ArteDigital.click
+            Biblioteca Master 4K ArteDigital.click
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-ink/80">
             Inicia sesión con tu cuenta de Google para acceder a todas las obras
-            en alta resolución 4K sin marca de agua, los prompts completos y los
-            manuales PDF.
+            en alta resolución nativa 4K sin marca de agua y disfrutar de tu licencia comercial permanente.
           </p>
 
           {loginError && (
@@ -218,7 +196,7 @@ export default function VipDashboardPage() {
                   onClick={() => openCheckout()}
                   className="mt-2.5 rounded-xl bg-accent px-5 py-2.5 text-xs font-semibold text-white hover:opacity-90"
                 >
-                  Obtener Pase de Acceso Total — $25 USD
+                  Obtener Pase Total — $25 USD
                 </button>
               </div>
             </>
@@ -239,7 +217,7 @@ export default function VipDashboardPage() {
               Pase de Acceso Total Vitalicio Activo
             </div>
             <h1 className="mt-3 font-serif text-3xl font-semibold text-ink sm:text-4xl">
-              Biblioteca Completa de ArteDigital.click
+              Mi Biblioteca Master en Resolución 4K
             </h1>
             <p className="mt-1.5 text-sm text-ink/80">
               Cuenta de Google verificada:{' '}
@@ -254,7 +232,7 @@ export default function VipDashboardPage() {
               className="inline-flex items-center gap-1.5 rounded-xl border border-ink/25 bg-canvas px-4 py-2.5 text-xs font-semibold text-ink/80 transition-colors hover:border-accent hover:text-accent"
             >
               <LogOut className="h-3.5 w-3.5" />
-              Cerrar sesión
+              <span>Cerrar sesión</span>
             </button>
           </div>
         </div>
@@ -266,67 +244,18 @@ export default function VipDashboardPage() {
         </div>
       )}
 
-      {/* Manuales Técnicos Desbloqueados */}
-      <section className="mt-12">
-        <div className="flex items-center gap-2">
-          <BookOpen className="h-5 w-5 text-accent" />
-          <h2 className="font-serif text-3xl font-semibold text-ink">
-            Manuales Técnicos Desbloqueados
-          </h2>
-        </div>
-
-        {manuals.length === 0 ? (
-          <p className="mt-4 rounded-2xl border border-ink/15 bg-surface/50 p-6 text-sm text-ink/75">
-            Nuevas guías técnicas en preparación.
-          </p>
-        ) : (
-          <div className="mt-5 grid gap-5 md:grid-cols-3">
-            {manuals.map((manual) => (
-              <div
-                key={manual.id}
-                className="flex flex-col justify-between rounded-2xl border border-ink/20 bg-surface-blue/70 p-5"
-              >
-                <div>
-                  <div className="flex items-center justify-between text-xs font-semibold text-ink/70">
-                    <span>{manual.format}</span>
-                    <span>{manual.pages_count} págs.</span>
-                  </div>
-                  <h3 className="mt-2 font-serif text-xl font-semibold text-ink">
-                    {manual.title}
-                  </h3>
-                  <p className="mt-2 text-xs leading-relaxed text-ink/80">
-                    {manual.description}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleDownloadAsset('manual', manual.id, manual.title)
-                  }
-                  className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Descargar Guía ({manual.format})
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
       {/* Galería Master Sin Marca de Agua */}
-      <section className="mt-14">
+      <section className="mt-12">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-accent" />
           <h2 className="font-serif text-3xl font-semibold text-ink">
-            Archivo Master 4K Sin Marca de Agua &amp; Prompts Completos
+            Catálogo Master 4K Desbloqueado Sin Marcas de Agua
           </h2>
         </div>
 
         {artworks.length === 0 ? (
           <p className="mt-4 rounded-2xl border border-ink/15 bg-surface/50 p-6 text-sm text-ink/75">
-            Nuevas obras master en preparación.
+            Nuevas obras master en preparación. Aparecerán aquí en cuanto sean cargadas.
           </p>
         ) : (
           <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -362,41 +291,21 @@ export default function VipDashboardPage() {
                         {artwork.title}
                       </Link>
 
-                      <div className="mt-3 rounded-xl border border-ink/15 bg-white p-3">
-                        <p className="font-mono text-[11px] leading-relaxed text-ink">
-                          {artwork.prompt_full}
-                        </p>
-                      </div>
+                      <p className="mt-2 text-xs leading-relaxed text-ink/75">
+                        {artwork.prompt_preview || artwork.alt_text}
+                      </p>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleCopyPrompt(artwork)}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-ink/25 bg-surface px-3 py-2.5 text-xs font-semibold text-ink hover:bg-surface-blue"
-                      >
-                        {copiedPromptId === artwork.id ? (
-                          <>
-                            <Check className="h-3.5 w-3.5 text-accent" />
-                            Copiado
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="h-3.5 w-3.5" />
-                            Copiar Prompt
-                          </>
-                        )}
-                      </button>
-
+                    <div className="mt-4">
                       <button
                         type="button"
                         onClick={() =>
                           handleDownloadAsset('artwork', artwork.id, artwork.title)
                         }
-                        className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-accent px-3 py-2.5 text-xs font-semibold text-white hover:opacity-90"
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
                       >
                         <Download className="h-3.5 w-3.5" />
-                        Descargar Master
+                        <span>Descargar Master 4K</span>
                       </button>
                     </div>
                   </div>

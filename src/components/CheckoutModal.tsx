@@ -383,7 +383,7 @@ export function CheckoutModal() {
                 <span className="font-semibold text-ink">
                   {selectedArtworkTitle}
                 </span>{' '}
-                + todo el catálogo 4K y manuales.
+                + todo el catálogo de arte digital en resolución 4K.
               </p>
             ) : (
               <p className="mt-1 text-xs text-ink/75">
@@ -416,19 +416,19 @@ export function CheckoutModal() {
               <ul className="mt-4 space-y-2 text-xs text-ink">
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-3.5 w-3.5 text-accent" />
-                  Descarga de todas las obras en alta resolución 4K sin marca.
+                  Descarga ilimitada de todas las obras en resolución 4K nativa sin marcas de agua.
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-3.5 w-3.5 text-accent" />
-                  Fórmulas completas de prompts, semillas y óptica.
+                  Ficha técnica completa: relación de aspecto, paleta y dirección artística.
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-3.5 w-3.5 text-accent" />
-                  Todos los manuales de consistencia de personajes en PDF/ZIP.
+                  Licencia de uso comercial y editorial ilimitada de por vida.
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-3.5 w-3.5 text-accent" />
-                  Licencia de uso comercial y editorial completa.
+                  Nuevas obras añadidas a la galería incluidas sin costo adicional.
                 </li>
               </ul>
             </div>

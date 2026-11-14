@@ -24,19 +24,19 @@ const cormorant = Cormorant_Garamond({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'ArteDigital.click | Galería de Arte IA en 4K, Prompts y Manuales',
+    default: 'ArteDigital.click | Galería de Arte Digital y Fotografía en 4K',
     template: '%s | ArteDigital.click',
   },
   description:
-    'Banco editorial de arte digital generado por IA en alta resolución 4K, ingeniería de prompts verificados y manuales técnicos de consistencia de personajes. Pase de Acceso Total por $25 USD.',
+    'Banco curado de arte digital, fotografía editorial e ilustraciones en resolución nativa 4K con licencia comercial completa. Pase de Acceso Total por $25 USD.',
   openGraph: {
     type: 'website',
     locale: 'es_ES',
     url: SITE_URL,
     siteName: 'ArteDigital.click',
-    title: 'ArteDigital.click | Galería de Arte IA en 4K y Prompts Profesionales',
+    title: 'ArteDigital.click | Galería de Arte Digital y Fotografía en 4K',
     description:
-      'Desbloquea obras digitales en alta resolución 4K sin marca de agua, prompts exactos y manuales de consistencia de personajes por un pago único de $25 USD.',
+      'Descarga obras de arte digital y fotografía editorial en resolución 4K sin marca de agua con licencia comercial vitalicia por un pago único de $25 USD.',
   },
   robots: {
     index: true,

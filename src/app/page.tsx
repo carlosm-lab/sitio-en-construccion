@@ -2,51 +2,46 @@ import React from 'react';
 import Link from 'next/link';
 import {
   ArrowDown,
-  BookOpen,
   Check,
   CheckCircle2,
-  FileText,
+  FileCheck2,
   HelpCircle,
   Image as ImageIcon,
   Layers,
-  LayoutDashboard,
   LockOpen,
+  Palette,
   ShieldCheck,
   Sliders,
   Sparkles,
 } from 'lucide-react';
 import {
   getFullArtworksWithSignedUrls,
-  getManuals,
   getPublicArtworks,
 } from '@/lib/data-store';
 import { CATEGORIES, MEMBERSHIP_PRICE_USD, SITE_URL } from '@/lib/constants';
 import { resolveServerAccess } from '@/lib/vip-auth';
 import { GalleryExplorer } from '@/components/GalleryExplorer';
-import {
-  ManualCardLockAction,
-  UnlockPrimaryButton,
-} from '@/components/HeroTriggerButtons';
+import { UnlockPrimaryButton } from '@/components/HeroTriggerButtons';
 import { PricingSection } from '@/components/PricingSection';
 
 export const dynamic = 'force-dynamic';
 
 const FAQ_ITEMS = [
   {
-    q: '¿El pago de $25 USD es por cada imagen o desbloquea toda la biblioteca?',
-    a: 'Es un único pago total de $25.00 USD por acceso ilimitado y vitalicio a TODA la plataforma: incluye la descarga de todas las obras en alta resolución 4K sin marca de agua, todos los prompts completos y todos los manuales técnicos PDF/ZIP actuales y futuros.',
+    q: '¿El pago de $25 USD es por cada imagen o desbloquea toda la galería?',
+    a: 'Es un único pago de $25.00 USD por acceso ilimitado y vitalicio a TODA la galería: incluye la descarga de todas las obras en alta resolución nativa 4K sin marca de agua, sus fichas artísticas completas y todas las nuevas obras que se agreguen en el futuro, sin ninguna mensualidad ni cargo recurrente.',
   },
   {
     q: '¿Cómo inicio sesión después de realizar mi compra?',
-    a: 'Usamos autenticación directa con Google OAuth. No necesitas recordar contraseñas ni códigos: simplemente haz clic en "Entrar con Google" usando tu correo vinculado a la compra y todo el sitio quedará desbloqueado automáticamente.',
+    a: 'Utilizamos autenticación directa con Google OAuth. No necesitas recordar contraseñas ni códigos: simplemente haz clic en "Acceso Miembros" o "Entrar con Google" usando tu correo de Google y todo el catálogo quedará desbloqueado inmediatamente.',
   },
   {
-    q: '¿Qué formatos tienen los archivos descargables?',
-    a: 'Las obras master se entregan en su formato original de alta resolución (PNG, JPG o WEBP sin compresión ni marcas de agua) y las guías técnicas se descargan directamente en formato PDF o paquetes ZIP.',
+    q: '¿En qué formato y resolución se entregan las obras descargables?',
+    a: 'Las obras master se entregan en su formato original de máxima calidad (PNG, JPG o WEBP en resolución 4K nativa de hasta 4096×5120px) completamente limpias de marcas de agua y listas para impresión o uso digital profesional.',
   },
   {
-    q: '¿Puedo utilizar las obras y prompts en proyectos comerciales?',
-    a: 'Sí. Tu Pase de Acceso Total incluye licencia mundial libre de regalías para uso personal, editorial, publicitario, diseño web y proyectos de clientes.',
+    q: '¿Puedo utilizar las obras en proyectos comerciales y de clientes?',
+    a: 'Sí. Tu Pase de Acceso Total incluye una licencia comercial y editorial libre de regalías de por vida para proyectos personales, campañas publicitarias, sitios web, diseño editorial, portadas y productos de clientes.',
   },
 ];
 
@@ -54,17 +49,16 @@ export default async function HomePage() {
   const access = await resolveServerAccess();
   const isUnlocked = access.hasFullAccess;
 
-  const [artworks, manuals] = await Promise.all([
-    isUnlocked ? getFullArtworksWithSignedUrls() : getPublicArtworks(),
-    getManuals(isUnlocked),
-  ]);
+  const artworks = isUnlocked
+    ? await getFullArtworksWithSignedUrls()
+    : await getPublicArtworks();
 
   const productSchema = {
     '@context': 'https://schema.org',
     '@type': 'Product',
-    name: 'Pase de Acceso Total Vitalicio — Galería 4K, Prompts y Manuales ArteDigital.click',
+    name: 'Pase de Acceso Total Vitalicio — Galería de Arte Digital y Fotografía 4K ArteDigital.click',
     description:
-      'Acceso vitalicio todo-en-uno a obras digitales generadas con IA en alta resolución sin marca de agua, prompts de ingeniería visual y manuales técnicos de consistencia de personajes.',
+      'Acceso vitalicio todo-en-uno a obras de arte digital y fotografía editorial en resolución 4K nativa sin marca de agua y con licencia comercial completa.',
     brand: {
       '@type': 'Brand',
       name: 'ArteDigital.click',
@@ -107,8 +101,7 @@ export default async function HomePage() {
       )}
 
       {/* =====================================================================
-          VISTA PARA ADMINISTRADORES Y MIEMBROS CON ACCESO TOTAL ACTIVO
-          (Cero botones de compra · Catálogo 100% desbloqueado)
+          VISTA PARA USUARIOS CON PASE TOTAL ACTIVO (Cero anuncios de compra)
          ===================================================================== */}
       {isUnlocked ? (
         <section className="rounded-3xl border-2 border-ink bg-surface p-6 sm:p-10">
@@ -119,12 +112,12 @@ export default async function HomePage() {
                 Pase de Acceso Total Activo
               </div>
               <h1 className="mt-3 font-serif text-3xl font-semibold text-ink sm:text-4xl">
-                Biblioteca Completa 4K, Prompts y Manuales Desbloqueados
+                Galería Completa en Resolución 4K Desbloqueada
               </h1>
               <p className="mt-2 text-sm leading-relaxed text-ink/80">
-                Tu cuenta tiene acceso permanente habilitado. Todas las imágenes en
-                alta resolución sin marca de agua, los prompts completos y los
-                manuales PDF están listos para copiar o descargar en un clic.
+                Tu cuenta tiene acceso permanente habilitado. Todas las piezas en
+                alta resolución sin marca de agua y sus fichas artísticas están listas
+                para descargar en un clic.
               </p>
             </div>
 
@@ -134,14 +127,14 @@ export default async function HomePage() {
                 className="inline-flex items-center gap-2 rounded-xl bg-ink px-5 py-3 text-xs font-semibold text-canvas transition-opacity hover:opacity-90"
               >
                 <ShieldCheck className="h-4 w-4 text-accent" />
-                Ir a Mi Biblioteca
+                <span>Ir a Mi Biblioteca 4K</span>
               </Link>
             </div>
           </div>
         </section>
       ) : (
         /* ===================================================================
-           VISTA PÚBLICA COMERCIAL (JERARQUÍA VISUAL Y CONVERSIÓN CLARA)
+           VISTA PÚBLICA COMERCIAL (JERARQUÍA VISUAL CRO & BAYMARD COMPLIANT)
            =================================================================== */
         <>
           {/* 1. HERO PRINCIPAL DE ALTA CONVERSIÓN */}
@@ -149,105 +142,98 @@ export default async function HomePage() {
             <div className="mx-auto max-w-4xl text-center">
               <div className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-canvas px-4 py-1.5 text-xs font-semibold text-ink shadow-sm">
                 <Sparkles className="h-3.5 w-3.5 text-accent" />
-                Librería Editorial de Arte IA · Prompts Verificados y Manuales 4K
+                Banco Curado de Arte Digital · Descarga Inmediata en 4K
               </div>
 
               <h1 className="mt-6 font-serif text-4xl font-semibold tracking-tight text-ink sm:text-5xl lg:text-6xl">
-                Domina la Generación de Imágenes IA con Obras 4K y Prompts de Grado Editorial
+                Obras Digitales Únicas y Fotografía de Alta Gama en Resolución 4K
               </h1>
 
               <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-ink/85 sm:text-lg">
-                Acceso permanente a cientos de piezas fotográficas en resolución nativa 4K (4096×5120px) sin marca de agua, fórmulas exactas de lentes e iluminación, y manuales paso a paso para mantener consistencia anatómica y facial del 100%. Sin suscripciones mensuales.
+                Accede a una galería artística curada con archivos master sin compresión ni marcas de agua. Una sola inversión para creadores, diseñadores y directores de arte. Sin suscripciones mensuales.
               </p>
 
-              {/* Botones de Acción de Alta Jerarquía */}
+              {/* Botón Primario de Conversión y Enlace a la Galería (Refactoring UI: 1 Primary CTA + 1 Anchor Link) */}
               <div className="mt-8 flex flex-col items-center justify-center gap-3.5 sm:flex-row">
-                <UnlockPrimaryButton label="Obtener Pase de Acceso Total — $25 USD" />
-                <a
-                  href="#precios"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-ink/25 bg-canvas px-5 py-3.5 text-sm font-semibold text-ink transition-colors hover:bg-surface-blue"
-                >
-                  <span>Ver Planes y Precios</span>
-                </a>
+                <UnlockPrimaryButton label="Obtener Pase Total Vitalicio — $25 USD" />
                 <a
                   href="#galeria"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-semibold text-ink/80 transition-colors hover:text-accent"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-ink/20 bg-canvas/80 px-5 py-3.5 text-sm font-semibold text-ink/80 transition-colors hover:border-accent hover:text-accent"
                 >
-                  <span>Explorar Catálogo ↓</span>
+                  <ArrowDown className="h-4 w-4" />
+                  <span>Explorar Galería ↓</span>
                 </a>
               </div>
 
-              {/* Barra de Prueba Social y Confianza */}
+              <p className="mt-4 text-xs font-medium text-ink/70">
+                ✓ Pago único de $25.00 USD · ✓ Licencia Comercial Vitalicia · ✓ Checkout Seguro PayPal
+              </p>
+
+              {/* Barra de Estadísticas y Confianza */}
               <div className="mt-10 grid grid-cols-2 gap-4 border-t border-ink/15 pt-8 sm:grid-cols-4">
                 <div className="rounded-xl border border-ink/10 bg-canvas/80 p-3.5 text-center">
-                  <span className="block font-serif text-2xl font-bold text-accent">+500</span>
-                  <span className="text-[11px] font-medium text-ink/75">Prompts Optimizados</span>
+                  <span className="block font-serif text-2xl font-bold text-accent">Master 4K</span>
+                  <span className="text-[11px] font-medium text-ink/75">Hasta 4096×5120px</span>
                 </div>
                 <div className="rounded-xl border border-ink/10 bg-canvas/80 p-3.5 text-center">
-                  <span className="block font-serif text-2xl font-bold text-accent">4K Nativo</span>
-                  <span className="text-[11px] font-medium text-ink/75">4096×5120px Sin Marcas</span>
-                </div>
-                <div className="rounded-xl border border-ink/10 bg-canvas/80 p-3.5 text-center">
-                  <span className="block font-serif text-2xl font-bold text-accent">Turnarounds</span>
-                  <span className="text-[11px] font-medium text-ink/75">Guías 360° en PDF</span>
+                  <span className="block font-serif text-2xl font-bold text-accent">Sin Marcas</span>
+                  <span className="text-[11px] font-medium text-ink/75">Archivos Originales</span>
                 </div>
                 <div className="rounded-xl border border-ink/10 bg-canvas/80 p-3.5 text-center">
                   <span className="block font-serif text-2xl font-bold text-accent">Ilimitada</span>
                   <span className="text-[11px] font-medium text-ink/75">Licencia Comercial</span>
                 </div>
+                <div className="rounded-xl border border-ink/10 bg-canvas/80 p-3.5 text-center">
+                  <span className="block font-serif text-2xl font-bold text-accent">$25 USD</span>
+                  <span className="text-[11px] font-medium text-ink/75">Pago Único Vitalicio</span>
+                </div>
               </div>
             </div>
           </section>
 
-          {/* 2. PILARES DE VALOR (QUÉ INCLUYE TU PASE TOTAL) */}
+          {/* 2. PILARES DE VALOR DEL PRODUCTO ÚNICO */}
           <section className="mt-12 grid gap-5 md:grid-cols-3">
             <div className="rounded-2xl border border-ink/15 bg-canvas p-6">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-ink/15 bg-surface text-accent">
                 <ImageIcon className="h-5 w-5" />
               </div>
               <h2 className="mt-4 font-serif text-2xl font-semibold text-ink">
-                1. Obras Master 4K Sin Marca
+                1. Obras Master en 4K Nativo
               </h2>
               <p className="mt-2 text-xs leading-relaxed text-ink/80">
-                Descarga ilimitada de todas las piezas del catálogo en su
-                resolución nativa original, limpias de marcas de agua y listas
-                para proyectos editoriales, web o comerciales.
+                Descarga directa e ilimitada de cada pieza en resolución original de hasta 5120px, limpias de marcas de agua y listas para impresión en gran formato, branding o pantallas de alta densidad.
               </p>
             </div>
 
             <div className="rounded-2xl border border-ink/15 bg-canvas p-6">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-ink/15 bg-surface text-accent">
-                <Sliders className="h-5 w-5" />
+                <Palette className="h-5 w-5" />
               </div>
               <h2 className="mt-4 font-serif text-2xl font-semibold text-ink">
-                2. Ingeniería de Prompts Exactos
+                2. Ficha Artística y Dirección Visual
               </h2>
               <p className="mt-2 text-xs leading-relaxed text-ink/80">
-                Copia en un clic la estructura completa de cada prompt: óptica
-                de cámara, esquema de iluminación, motor IA, relación de
-                aspecto y modificadores de estilo verificados.
+                Cada obra incluye su desglose técnico: relación de aspecto, paleta cromática dominante, esquema de composición y dirección de arte detallada.
               </p>
             </div>
 
             <div className="rounded-2xl border border-ink/15 bg-canvas p-6">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-ink/15 bg-surface text-accent">
-                <BookOpen className="h-5 w-5" />
+                <FileCheck2 className="h-5 w-5" />
               </div>
               <h2 className="mt-4 font-serif text-2xl font-semibold text-ink">
-                3. Manuales de Consistencia PDF
+                3. Licencia Comercial Vitalicia
               </h2>
               <p className="mt-2 text-xs leading-relaxed text-ink/80">
-                Guías técnicas descargables paso a paso para dominar
-                turnarounds 360°, control de semillas (seeds) y consistencia
-                facial en Midjourney, Flux y Stable Diffusion.
+                Utiliza las obras en proyectos comerciales, portadas, publicidad, diseño web y productos impresos sin pagar regalías extras ni renovar suscripciones.
               </p>
             </div>
           </section>
         </>
       )}
 
-      {/* 3. ACCESOS RÁPIDOS POR CATEGORÍA SEO */}
-      <section className="mt-12 grid gap-4 sm:grid-cols-3" aria-label="Colecciones por categoría">
+      {/* 3. ACCESOS RÁPIDOS POR GÉNERO ARTÍSTICO */}
+      <section className="mt-12 grid gap-4 sm:grid-cols-3" aria-label="Colecciones por género">
         {CATEGORIES.map((cat) => (
           <Link
             key={cat.slug}
@@ -268,103 +254,38 @@ export default async function HomePage() {
       </section>
 
       {/* 4. GALERÍA INTERACTIVA Y BUSCADOR */}
-      <div className="mt-14">
+      <section id="galeria" className="mt-14 scroll-mt-24">
         <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
           <div>
             <span className="text-xs font-bold uppercase tracking-widest text-accent">
-              {isUnlocked ? 'Catálogo Master Desbloqueado' : 'Catálogo Editorial'}
+              {isUnlocked ? 'Catálogo Master Desbloqueado' : 'Galería Curada'}
             </span>
             <h2 className="mt-1 font-serif text-3xl font-semibold text-ink">
               {isUnlocked
-                ? 'Obras en Alta Resolución y Prompts Completos'
-                : 'Explora las Obras y Fichas Técnicas'}
+                ? 'Obras en Resolución 4K Desbloqueadas'
+                : 'Explora las Obras y Fichas de Estilo'}
             </h2>
           </div>
           <p className="text-xs text-ink/75">
             {isUnlocked
-              ? 'Copia cualquier prompt o descarga el archivo master 4K directamente desde cada tarjeta.'
-              : 'Selecciona cualquier obra para inspeccionar su ficha técnica y parámetros de renderizado.'}
+              ? 'Descarga el archivo master 4K directamente desde cada tarjeta.'
+              : 'Selecciona cualquier obra para revisar su ficha artística o desbloquear todo el catálogo.'}
           </p>
         </div>
 
         <GalleryExplorer artworks={artworks} serverUnlocked={isUnlocked} />
-      </div>
-
-      {/* 5. BIBLIOTECA DE MANUALES TÉCNICOS */}
-      <section
-        id="manuales"
-        className="mt-16 rounded-3xl border border-ink/15 bg-surface-blue/65 p-6 sm:p-10"
-      >
-        <div className="flex flex-col justify-between gap-4 border-b border-ink/15 pb-6 sm:flex-row sm:items-end">
-          <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-ink/20 bg-surface px-3 py-1 text-xs font-semibold text-ink">
-              <BookOpen className="h-3.5 w-3.5 text-accent" />
-              Documentación Técnica
-            </span>
-            <h2 className="mt-3 font-serif text-3xl font-semibold text-ink">
-              Manuales de Consistencia de Personajes e Ingeniería Visual
-            </h2>
-            <p className="mt-1.5 max-w-2xl text-sm text-ink/75">
-              {isUnlocked
-                ? 'Todos los manuales están desbloqueados en tu cuenta y listos para descargar.'
-                : 'Todos los manuales técnicos están incluidos dentro del Pase de Acceso Total sin pagos adicionales.'}
-            </p>
-          </div>
-        </div>
-
-        {manuals.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-ink/15 bg-canvas p-8 text-center">
-            <p className="text-sm font-medium text-ink/75">
-              Nuevas ediciones de manuales técnicos en preparación.
-            </p>
-          </div>
-        ) : (
-          <div className="mt-6 grid gap-5 md:grid-cols-3">
-            {manuals.map((manual) => (
-              <div
-                key={manual.id}
-                className="flex flex-col justify-between rounded-2xl border border-ink/15 bg-canvas p-5"
-              >
-                <div>
-                  <div className="flex items-center justify-between text-xs text-ink/70">
-                    <span className="inline-flex items-center gap-1 font-semibold">
-                      <FileText className="h-3.5 w-3.5 text-accent" />
-                      {manual.format}
-                    </span>
-                    <span>{manual.pages_count} págs.</span>
-                  </div>
-                  <h3 className="mt-3 font-serif text-xl font-semibold text-ink">
-                    {manual.title}
-                  </h3>
-                  <p className="mt-2 text-xs leading-relaxed text-ink/75">
-                    {manual.description}
-                  </p>
-                </div>
-
-                <ManualCardLockAction
-                  manualId={manual.id}
-                  manualTitle={manual.title}
-                  format={manual.format}
-                  pagesCount={manual.pages_count}
-                  serverUnlocked={isUnlocked}
-                />
-              </div>
-            ))}
-          </div>
-        )}
       </section>
 
       {/* =====================================================================
-          6. SECCIÓN DE CONVERSIÓN ÚNICA Y PREGUNTAS FRECUENTES
-             (Visible únicamente para visitantes que aún no tienen el Pase Total)
+          5. SECCIÓN DE INVERSIÓN Y PREGUNTAS FRECUENTES (Visitantes)
          ===================================================================== */}
       {!isUnlocked && (
         <>
-          {/* Cómo Funciona en 3 Pasos */}
+          {/* Cómo Funciona en 3 Pasos Simples */}
           <section className="mt-16">
             <div className="text-center">
               <span className="text-xs font-bold uppercase tracking-widest text-accent">
-                Flujo Simple y Directo
+                Flujo Directo y Simple
               </span>
               <h2 className="mt-1 font-serif text-3xl font-semibold text-ink">
                 ¿Cómo funciona el acceso en ArteDigital.click?
@@ -380,9 +301,7 @@ export default async function HomePage() {
                   Conecta tu cuenta de Google
                 </h3>
                 <p className="mt-2 text-xs leading-relaxed text-ink/80">
-                  Olvídate de contraseñas o códigos complicados. Tu acceso se
-                  vincula directamente a tu correo de Google mediante OAuth
-                  oficial.
+                  Sin contraseñas que olvidar. Tu acceso se vincula directamente a tu correo de Google mediante OAuth oficial para entrar en 1 clic.
                 </p>
               </div>
 
@@ -394,9 +313,7 @@ export default async function HomePage() {
                   Pago único de $25 USD vía PayPal
                 </h3>
                 <p className="mt-2 text-xs leading-relaxed text-ink/80">
-                  Un solo pago desbloquea toda la plataforma de forma vitalicia.
-                  No cobramos por imagen individual ni existen suscripciones
-                  mensuales.
+                  Un solo pago desbloquea toda la galería de forma vitalicia. No cobramos por imagen individual ni existen mensualidades recurrentes.
                 </p>
               </div>
 
@@ -405,22 +322,19 @@ export default async function HomePage() {
                   03
                 </span>
                 <h3 className="mt-4 font-serif text-xl font-semibold text-ink">
-                  Desbloqueo inmediato de toda la web
+                  Desbloqueo inmediato en 4K
                 </h3>
                 <p className="mt-2 text-xs leading-relaxed text-ink/80">
-                  Al instante desaparecen todos los avisos de compra y se
-                  habilita la descarga directa en 4K, los prompts íntegros y los
-                  manuales PDF.
+                  Al instante desaparecen todos los avisos de compra y se habilita la descarga directa en resolución 4K nativa de toda la colección.
                 </p>
               </div>
             </div>
           </section>
 
-          {/* Tarjeta Única de Conversión + FAQ */}
-          {/* 6. SECCIÓN DE PLANES Y PRECIOS (#precios) */}
+          {/* Sección de Inversión y Comparativa (#precios) */}
           <PricingSection />
 
-          {/* 7. PREGUNTAS FRECUENTES */}
+          {/* Preguntas Frecuentes */}
           <section className="mt-20 rounded-3xl border border-ink/15 bg-canvas p-8 sm:p-12">
             <div className="mx-auto max-w-3xl text-center">
               <div className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-surface px-3 py-1 text-xs font-semibold text-ink">

@@ -43,7 +43,7 @@ export function GalleryExplorer({
       const queryMatch =
         !q ||
         item.title.toLowerCase().includes(q) ||
-        item.prompt_preview.toLowerCase().includes(q) ||
+        (item.prompt_preview ? item.prompt_preview.toLowerCase().includes(q) : false) ||
         item.alt_text.toLowerCase().includes(q);
       return catMatch && queryMatch;
     });

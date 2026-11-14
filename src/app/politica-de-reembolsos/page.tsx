@@ -31,9 +31,9 @@ export default function PoliticaReembolsosPage() {
             <p className="mt-2">
               Todos los productos comercializados en{' '}
               <strong>ArteDigital.click</strong> consisten exclusivamente en{' '}
-              <strong>bienes digitales intangibles</strong> (imágenes digitales en
-              alta resolución 4K sin marca de agua, prompts de ingeniería visual y
-              manuales técnicos descargables) bajo la categoría comercial{' '}
+              <strong>bienes digitales intangibles</strong> (imágenes artísticas y
+              fotografías editoriales en alta resolución nativa 4K sin marca de agua
+              y sus fichas artísticas de composición) bajo la categoría comercial{' '}
               <code>DIGITAL_GOODS</code>.
             </p>
             <p className="mt-3">

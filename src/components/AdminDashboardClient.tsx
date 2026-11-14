@@ -68,10 +68,10 @@ export function AdminDashboardClient({
 
   // Subida real de obras + detección automática de resolución y aspecto
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<ArtworkCategory>('retratos-ia');
+  const [category, setCategory] = useState<ArtworkCategory>('fotografia-editorial');
   const [promptPreview, setPromptPreview] = useState('');
   const [promptFull, setPromptFull] = useState('');
-  const [motor, setMotor] = useState('Midjourney v6.1');
+  const [motor, setMotor] = useState('Fotografía de Estudio');
   const [aspecto, setAspecto] = useState('');
   const [resolucion, setResolucion] = useState('');
   const [altText, setAltText] = useState('');
@@ -634,43 +634,43 @@ export function AdminDashboardClient({
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-ink/80">
-                    Categoría SEO *
+                    Categoría *
                   </label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value as ArtworkCategory)}
                     className="mt-1 w-full rounded-xl border border-ink/25 bg-white px-3.5 py-2.5 text-xs text-ink focus:border-accent focus:outline-none"
                   >
-                    <option value="retratos-ia">Retratos IA</option>
-                    <option value="concept-art">Concept Art</option>
-                    <option value="guias-personajes">Guías de Personajes</option>
+                    <option value="fotografia-editorial">Fotografía Editorial</option>
+                    <option value="arte-conceptual">Arte Conceptual</option>
+                    <option value="ilustracion-digital">Ilustración Digital</option>
                   </select>
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-ink/80">
-                  Prompt Preview (Extracto público visible)
+                  Descripción / Dirección de Arte (Extracto público)
                 </label>
                 <input
                   type="text"
                   value={promptPreview}
                   onChange={(e) => setPromptPreview(e.target.value)}
-                  placeholder="Inicio corto del prompt visible en la tarjeta pública..."
+                  placeholder="Breve descripción visible en la tarjeta pública..."
                   className="mt-1 w-full rounded-xl border border-ink/25 bg-white px-3.5 py-2.5 text-xs text-ink focus:border-accent focus:outline-none"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-ink/80">
-                  Prompt Completo Protegido (Solo VIP) *
+                  Ficha Técnica / Detalles de Composición *
                 </label>
                 <textarea
                   rows={3}
                   required
                   value={promptFull}
                   onChange={(e) => setPromptFull(e.target.value)}
-                  placeholder="Prompt técnico íntegro + parámetros verificados..."
+                  placeholder="Detalles técnicos, esquema de iluminación, paleta o técnica..."
                   className="mt-1 w-full rounded-xl border border-ink/25 bg-white px-3.5 py-2.5 font-mono text-xs text-ink focus:border-accent focus:outline-none"
                 />
               </div>
@@ -683,7 +683,7 @@ export function AdminDashboardClient({
                   type="text"
                   value={altText}
                   onChange={(e) => setAltText(e.target.value)}
-                  placeholder="Descripción accesible e indexable de la obra..."
+                  placeholder="Descripción accesible de la obra..."
                   className="mt-1 w-full rounded-xl border border-ink/25 bg-white px-3.5 py-2.5 text-xs text-ink focus:border-accent focus:outline-none"
                 />
               </div>
@@ -691,14 +691,14 @@ export function AdminDashboardClient({
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="block text-[11px] font-semibold text-ink/75">
-                    Motor *
+                    Estilo / Técnica *
                   </label>
                   <input
                     type="text"
                     required
                     value={motor}
                     onChange={(e) => setMotor(e.target.value)}
-                    placeholder="Ej. Midjourney v6.1"
+                    placeholder="Ej. Fotografía de Estudio / Óleo Digital"
                     className="mt-1 w-full rounded-lg border border-ink/20 bg-white px-2.5 py-2 text-xs text-ink"
                   />
                 </div>
@@ -791,7 +791,7 @@ export function AdminDashboardClient({
                   required
                   value={manualTitle}
                   onChange={(e) => setManualTitle(e.target.value)}
-                  placeholder="Ej. Manual Consistencia de Personajes 360°"
+                  placeholder="Ej. Catálogo Editorial de Obras en 4K"
                   className="mt-1 w-full rounded-xl border border-ink/25 bg-white px-3.5 py-2.5 text-xs text-ink"
                 />
               </div>

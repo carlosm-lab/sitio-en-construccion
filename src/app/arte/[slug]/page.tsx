@@ -6,8 +6,10 @@ import { notFound } from 'next/navigation';
 import {
   ArrowLeft,
   CheckCircle2,
+  FileCheck2,
   Lock,
   LockOpen,
+  Palette,
   ShieldCheck,
   Sliders,
   Sparkles,
@@ -39,8 +41,8 @@ export async function generateMetadata({
   }
 
   const catName = CATEGORY_MAP[artwork.category]?.name || artwork.category;
-  const title = `${artwork.title} — ${catName} y Prompt IA`;
-  const description = `Ficha técnica, parámetros de renderizado y vista previa de "${artwork.title}". Desbloquea el archivo master 4K sin marca de agua, el prompt completo y toda la biblioteca con el Pase Total de $25 USD.`;
+  const title = `${artwork.title} — ${catName} en 4K`;
+  const description = `Ficha artística, composición visual y descarga master de "${artwork.title}". Desbloquea el archivo master 4K sin marca de agua y toda la galería con el Pase Total de $25 USD.`;
 
   return {
     title,
@@ -97,7 +99,7 @@ export default async function ArtworkDetailPage({
     '@context': 'https://schema.org',
     '@type': 'ImageObject',
     name: artwork.title,
-    description: artwork.prompt_preview,
+    description: artwork.alt_text,
     contentUrl: artwork.watermarked_url,
     acquireLicensePage: `${SITE_URL}/arte/${artwork.slug}`,
     creditText: 'ArteDigital.click',
@@ -113,7 +115,7 @@ export default async function ArtworkDetailPage({
     name: `${artwork.title} + Pase de Acceso Total ArteDigital.click`,
     image: artwork.watermarked_url,
     description:
-      'Archivo digital 4K sin marca de agua, prompt completo verificado y acceso vitalicio a toda la biblioteca ArteDigital.click.',
+      'Archivo digital master en resolución nativa 4K sin marca de agua y licencia comercial completa de por vida.',
     offers: {
       '@type': 'Offer',
       url: `${SITE_URL}/arte/${artwork.slug}`,
@@ -141,7 +143,7 @@ export default async function ArtworkDetailPage({
       <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-ink/75">
         <Link href="/" className="inline-flex items-center gap-1 hover:text-accent">
           <ArrowLeft className="h-3.5 w-3.5" />
-          Inicio
+          Galería
         </Link>
         <span>/</span>
         <Link
@@ -156,7 +158,7 @@ export default async function ArtworkDetailPage({
 
       <div className="mt-6 grid gap-10 lg:grid-cols-12">
         <div className="lg:col-span-6">
-          <div className="relative aspect-[4/5] w-full overflow-hidden rounded-3xl border border-ink/20 bg-surface select-none">
+          <div className="relative aspect-[4/5] w-full overflow-hidden rounded-3xl border border-ink/20 bg-surface select-none shadow-sm">
             <Image
               src={displayImageUrl}
               alt={artwork.alt_text}
@@ -165,11 +167,11 @@ export default async function ArtworkDetailPage({
               sizes="(max-width: 1024px) 100vw, 50vw"
               className="object-cover"
             />
-            <div className="absolute bottom-4 right-4 inline-flex items-center gap-1.5 rounded-full bg-ink/90 px-3 py-1.5 text-xs font-semibold text-canvas">
+            <div className="absolute bottom-4 right-4 inline-flex items-center gap-1.5 rounded-full bg-ink/90 px-3 py-1.5 text-xs font-semibold text-canvas shadow">
               {isUnlocked ? (
                 <>
                   <LockOpen className="h-3.5 w-3.5 text-surface" />
-                  <span>Archivo Master 4K Sin Marca</span>
+                  <span>Archivo Master 4K Desbloqueado</span>
                 </>
               ) : (
                 <>
@@ -191,7 +193,7 @@ export default async function ArtworkDetailPage({
               {isUnlocked && (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-ink/25 bg-canvas px-3 py-1 text-xs font-semibold text-ink">
                   <ShieldCheck className="h-3.5 w-3.5 text-accent" />
-                  Acceso Total Desbloqueado
+                  Acceso Total Activo
                 </span>
               )}
             </div>
@@ -202,15 +204,16 @@ export default async function ArtworkDetailPage({
 
             <p className="mt-3 text-sm leading-relaxed text-ink/80">
               {isUnlocked
-                ? `${artwork.alt_text}. Estás visualizando la versión Master 4K desbloqueada sin marca de agua junto con el prompt íntegro.`
-                : `${artwork.alt_text}. Esta pieza forma parte de la biblioteca ArteDigital.click; con el Pase de Acceso Total obtienes el archivo master en resolución 4K sin marca de agua, el prompt completo y todo el catálogo del sitio.`}
+                ? `${artwork.alt_text}. Tienes acceso completo a la versión master en resolución 4K nativa sin marca de agua.`
+                : `${artwork.alt_text}. Esta pieza forma parte de la galería ArteDigital.click; con el Pase de Acceso Total obtienes el archivo master en resolución 4K sin compresión y todo el catálogo del sitio.`}
             </p>
 
+            {/* Parámetros de Composición y Dirección de Arte */}
             {renderParamsEntries.length > 0 && (
               <div className="mt-6 rounded-2xl border border-ink/15 bg-surface-blue/70 p-5">
                 <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-ink/80">
-                  <Sliders className="h-3.5 w-3.5 text-accent" />
-                  Parámetros Técnicos de Renderizado
+                  <Palette className="h-3.5 w-3.5 text-accent" />
+                  Ficha de Composición y Estilo
                 </h2>
                 <dl className="mt-4 grid grid-cols-2 gap-3 text-xs sm:grid-cols-3">
                   {renderParamsEntries.map(([key, val]) => (
@@ -228,53 +231,43 @@ export default async function ArtworkDetailPage({
               </div>
             )}
 
+            {/* Ficha Artística */}
             <div className="mt-6">
               <h2 className="text-xs font-bold uppercase tracking-widest text-ink/80">
-                {isUnlocked
-                  ? 'Prompt de Ingeniería Visual Completo (Desbloqueado)'
-                  : 'Prompt de Ingeniería Visual'}
+                Dirección Artística y Detalles de la Obra
               </h2>
-              {isUnlocked ? (
-                <div className="mt-2 rounded-2xl border-2 border-ink bg-white p-5">
-                  <p className="font-mono text-xs leading-relaxed text-ink">
-                    {fullArt.prompt_full || artwork.prompt_preview}
-                  </p>
+              <div className="mt-2 rounded-2xl border border-ink/15 bg-surface/60 p-5">
+                <p className="text-xs leading-relaxed text-ink/85">
+                  {artwork.prompt_preview || artwork.alt_text}
+                </p>
+                <div className="mt-3.5 flex flex-wrap items-center gap-3 border-t border-ink/10 pt-3 text-[11px] font-medium text-ink/70">
+                  <span className="inline-flex items-center gap-1">
+                    <FileCheck2 className="h-3.5 w-3.5 text-accent" />
+                    Licencia Comercial Vitalicia
+                  </span>
+                  <span>·</span>
+                  <span>Resolución Nativa 4K</span>
+                  <span>·</span>
+                  <span>Entrega Digital Inmediata</span>
                 </div>
-              ) : (
-                <div className="relative mt-2 overflow-hidden rounded-2xl border border-ink/20 bg-surface/65 p-5">
-                  <p className="text-xs font-medium text-ink/80">
-                    Extracto inicial:{' '}
-                    <span className="font-mono text-ink">{artwork.prompt_preview}</span>
-                  </p>
-                  <div className="mt-3 rounded-xl border border-ink/15 bg-canvas/90 p-3.5">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-ink">
-                      <Lock className="h-3.5 w-3.5 shrink-0 text-accent" />
-                      <span>
-                        La estructura completa del prompt (óptica, iluminación,
-                        semillas y parámetros avanzados) se desbloquea con tu Pase
-                        de Acceso Total.
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           </div>
 
           {isUnlocked ? (
             <ArtworkDetailUnlockedActions
               artworkId={artwork.id}
-              promptFull={fullArt.prompt_full || artwork.prompt_preview}
+              compositionDetails={artwork.prompt_preview || artwork.alt_text}
             />
           ) : (
-            <div className="mt-8 rounded-2xl border-2 border-ink bg-surface p-6">
+            <div className="mt-8 rounded-2xl border-2 border-ink bg-surface p-6 shadow-sm">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-widest text-ink/70">
                     Pase de Acceso Total Vitalicio
                   </p>
                   <p className="font-serif text-2xl font-semibold text-ink">
-                    Incluye esta obra + toda la biblioteca
+                    Desbloquea esta obra en 4K + Toda la Galería
                   </p>
                 </div>
                 <div className="text-right">
@@ -290,22 +283,22 @@ export default async function ArtworkDetailPage({
               <ul className="mt-4 space-y-1.5 text-xs text-ink/85">
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-accent" />
-                  Descarga de TODAS las obras en 4K sin marca de agua.
+                  Descarga de TODAS las obras en resolución 4K sin marca de agua.
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-accent" />
-                  Acceso ilimitado a todos los prompts exactos y manuales PDF.
+                  Licencia de uso comercial y editorial ilimitada de por vida.
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-accent" />
-                  Vinculación directa en 1 clic con tu cuenta de Google.
+                  Acceso directo en 1 clic con tu cuenta de Google.
                 </li>
               </ul>
 
               <div className="mt-5">
                 <UnlockPrimaryButton
                   artworkTitle={artwork.title}
-                  label="Obtener Pase de Acceso Total — $25 USD"
+                  label="Desbloquear con Pase Total — $25 USD"
                   className="w-full"
                 />
               </div>
@@ -317,7 +310,7 @@ export default async function ArtworkDetailPage({
       {related.length > 0 && (
         <section className="mt-16 border-t border-ink/15 pt-10">
           <h2 className="font-serif text-2xl font-semibold text-ink">
-            Otras piezas en {catMeta?.name}
+            Otras obras en {catMeta?.name}
           </h2>
           <div className="mt-5 grid gap-5 sm:grid-cols-3">
             {related.map((item) => {
@@ -338,7 +331,7 @@ export default async function ArtworkDetailPage({
                       alt={item.alt_text}
                       fill
                       sizes="(max-width: 768px) 100vw, 33vw"
-                      className="object-cover"
+                      className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                     />
                   </div>
                   <h3 className="mt-3 font-serif text-lg font-semibold text-ink group-hover:underline">

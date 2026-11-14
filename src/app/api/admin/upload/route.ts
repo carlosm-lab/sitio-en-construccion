@@ -12,6 +12,9 @@ import { extractClientForensicInfo } from '@/lib/request-info';
 import { ArtworkCategory } from '@/types';
 
 const ALLOWED_CATEGORIES: ArtworkCategory[] = [
+  'fotografia-editorial',
+  'arte-conceptual',
+  'ilustracion-digital',
   'retratos-ia',
   'concept-art',
   'guias-personajes',
@@ -96,7 +99,7 @@ export async function POST(req: NextRequest) {
           return NextResponse.json(
             {
               error:
-                'Faltan campos técnicos obligatorios (título, categoría, prompt, motor, relación de aspecto, resolución o rutas de archivo).',
+                'Faltan campos técnicos obligatorios (título, categoría, ficha técnica, estilo/técnica, relación de aspecto, resolución o rutas de archivo).',
             },
             { status: 400 }
           );
@@ -113,7 +116,7 @@ export async function POST(req: NextRequest) {
             aspecto,
             resolucion,
           },
-          alt_text: altText || `${title} — Arte Digital IA ArteDigital.click`,
+          alt_text: altText || `${title} — Arte Digital ArteDigital.click`,
           watermarkedPath,
           highResPath,
         });
@@ -163,7 +166,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            'Campos obligatorios: título, categoría, prompt completo, motor, aspecto y resolución real.',
+            'Campos obligatorios: título, categoría, ficha técnica, estilo/técnica, aspecto y resolución real.',
         },
         { status: 400 }
       );
@@ -219,7 +222,7 @@ export async function POST(req: NextRequest) {
         aspecto,
         resolucion,
       },
-      alt_text: altText || `${title} — Arte Digital IA ArteDigital.click`,
+      alt_text: altText || `${title} — Arte Digital ArteDigital.click`,
       watermarkedBuffer: wmBuffer,
       watermarkedMime: 'image/jpeg',
       highResBuffer,
