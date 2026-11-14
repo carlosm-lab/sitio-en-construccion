@@ -290,8 +290,46 @@ export async function registerUploadedArtwork(params: {
   alt_text: string;
   watermarkedPath: string;
   highResPath: string;
+  skipStorageVerification?: boolean;
 }): Promise<ArtworkFull> {
   const supabase = getSupabaseAdmin();
+
+  const wmRegex = new RegExp(`^${params.category}/[a-z0-9-]+-preview\\.jpg$`);
+  const hrRegex = new RegExp(`^${params.category}/[a-z0-9-]+-master\\.(jpg|png|webp)$`);
+  if (
+    params.watermarkedPath.includes('..') ||
+    params.highResPath.includes('..') ||
+    !wmRegex.test(params.watermarkedPath) ||
+    !hrRegex.test(params.highResPath)
+  ) {
+    throw new Error('Rutas de almacenamiento inválidas.');
+  }
+
+  if (!params.skipStorageVerification) {
+    const [wmDl, hrDl] = await Promise.all([
+      supabase.storage.from(BUCKET_WATERMARKED).download(params.watermarkedPath),
+      supabase.storage.from(BUCKET_HIGHRES).download(params.highResPath),
+    ]);
+
+    if (wmDl.error || !wmDl.data || hrDl.error || !hrDl.data) {
+      await supabase.storage.from(BUCKET_WATERMARKED).remove([params.watermarkedPath]);
+      await supabase.storage.from(BUCKET_HIGHRES).remove([params.highResPath]);
+      throw new Error('No se encontraron los archivos subidos en el almacenamiento seguro.');
+    }
+
+    const wmHeaderBuf = Buffer.from(await wmDl.data.slice(0, 64).arrayBuffer());
+    const hrHeaderBuf = Buffer.from(await hrDl.data.slice(0, 64).arrayBuffer());
+    const detectedWm = detectImageMimeFromMagicBytes(wmHeaderBuf);
+    const detectedHr = detectImageMimeFromMagicBytes(hrHeaderBuf);
+
+    if (!detectedWm || detectedWm.mime !== 'image/jpeg' || !detectedHr) {
+      await supabase.storage.from(BUCKET_WATERMARKED).remove([params.watermarkedPath]);
+      await supabase.storage.from(BUCKET_HIGHRES).remove([params.highResPath]);
+      throw new Error(
+        'Los archivos subidos no superaron la validación de firma binaria (magic bytes).'
+      );
+    }
+  }
 
   const { data: publicUrlData } = supabase.storage
     .from(BUCKET_WATERMARKED)
@@ -383,6 +421,7 @@ export async function uploadAndCreateArtwork(params: {
     alt_text: params.alt_text,
     watermarkedPath,
     highResPath,
+    skipStorageVerification: true,
   });
 }
 
@@ -441,9 +480,40 @@ export async function registerUploadedManual(params: {
   format: string;
   filePath: string;
   fileName: string;
+  skipStorageVerification?: boolean;
 }): Promise<ManualItem> {
   const supabase = getSupabaseAdmin();
   const safeName = params.fileName.replace(/[^a-zA-Z0-9._-]/g, '_') || 'manual.pdf';
+
+  if (
+    params.filePath.includes('..') ||
+    !/^guides\/\d+-[a-zA-Z0-9._-]+\.(pdf|zip)$/i.test(params.filePath)
+  ) {
+    throw new Error('Ruta de archivo de manual inválida.');
+  }
+
+  let verifiedFormat = params.format === 'ZIP' ? 'ZIP' : 'PDF';
+
+  if (!params.skipStorageVerification) {
+    const { data: dlData, error: dlErr } = await supabase.storage
+      .from(BUCKET_MANUALS)
+      .download(params.filePath);
+
+    if (dlErr || !dlData) {
+      await supabase.storage.from(BUCKET_MANUALS).remove([params.filePath]);
+      throw new Error('No se encontró el archivo del manual en el almacenamiento seguro.');
+    }
+
+    const headerBuf = Buffer.from(await dlData.slice(0, 64).arrayBuffer());
+    const detected = detectManualMimeFromMagicBytes(headerBuf);
+    if (!detected) {
+      await supabase.storage.from(BUCKET_MANUALS).remove([params.filePath]);
+      throw new Error(
+        'El archivo subido no es un documento PDF ni un paquete ZIP válido (magic bytes).'
+      );
+    }
+    verifiedFormat = detected.format;
+  }
 
   const { data: created, error: dbErr } = await supabase
     .from('manuals')
@@ -451,7 +521,7 @@ export async function registerUploadedManual(params: {
       title: params.title,
       description: params.description,
       pages_count: params.pages_count,
-      format: params.format,
+      format: verifiedFormat,
       file_path: params.filePath,
       file_name: safeName,
     })
@@ -499,6 +569,7 @@ export async function uploadAndCreateManual(params: {
     format: params.format,
     filePath,
     fileName: safeName,
+    skipStorageVerification: true,
   });
 }
 
@@ -718,10 +789,11 @@ export async function lookupDisputeEvidence(query: string): Promise<{
   }
 
   if (matchedCustomers.length === 0 && isValidCleanEmail(lowerQuery)) {
+    const escapedEmail = lowerQuery.replace(/([\\%_])/g, '\\$1');
     const { data } = await supabase
       .from('customers')
       .select('*')
-      .eq('email', lowerQuery)
+      .ilike('email', escapedEmail)
       .order('created_at', { ascending: false });
     if (data && data.length > 0) matchedCustomers = data as CustomerRecord[];
   }

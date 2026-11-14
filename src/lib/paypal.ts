@@ -165,6 +165,33 @@ export async function capturePayPalOrder(
 
   const unit = data?.purchase_units?.[0];
   const capture = unit?.payments?.captures?.[0];
+  let resolvedCustomId =
+    (unit?.custom_id && String(unit.custom_id)) ||
+    (capture?.custom_id && String(capture.custom_id)) ||
+    null;
+
+  if (!resolvedCustomId) {
+    const orderRes = await fetch(
+      `${baseUrl}/v2/checkout/orders/${encodeURIComponent(orderId)}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-store',
+      }
+    ).catch(() => null);
+    if (orderRes && orderRes.ok) {
+      const orderData = await orderRes.json().catch(() => ({}));
+      const orderUnit = orderData?.purchase_units?.[0];
+      const orderCapture = orderUnit?.payments?.captures?.[0];
+      resolvedCustomId =
+        (orderUnit?.custom_id && String(orderUnit.custom_id)) ||
+        (orderCapture?.custom_id && String(orderCapture.custom_id)) ||
+        null;
+    }
+  }
 
   return {
     orderId: String(data.id || orderId),
@@ -174,10 +201,7 @@ export async function capturePayPalOrder(
     captureCurrency: capture?.amount?.currency_code
       ? String(capture.amount.currency_code)
       : null,
-    customId:
-      (unit?.custom_id && String(unit.custom_id)) ||
-      (capture?.custom_id && String(capture.custom_id)) ||
-      null,
+    customId: resolvedCustomId,
     payerId: data?.payer?.payer_id ? String(data.payer.payer_id) : null,
     payerEmail: data?.payer?.email_address ? String(data.payer.email_address) : null,
     captureId: capture?.id ? String(capture.id) : null,

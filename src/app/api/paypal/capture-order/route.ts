@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (email && !isValidCleanEmail(email)) {
+    if (!email || typeof email !== 'string' || !isValidCleanEmail(email)) {
       return NextResponse.json(
         { error: 'Formato de correo electrónico inválido.' },
         { status: 400 }
@@ -71,11 +71,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const requestedEmail = email ? email.trim().toLowerCase() : '';
+    const requestedEmail = email.trim().toLowerCase();
     const customIdEmail = capture.customId ? capture.customId.trim().toLowerCase() : '';
     const payerEmail = capture.payerEmail ? capture.payerEmail.trim().toLowerCase() : '';
 
-    if (requestedEmail && customIdEmail && requestedEmail !== customIdEmail) {
+    if (!customIdEmail || requestedEmail !== customIdEmail) {
       return NextResponse.json(
         {
           error:
@@ -85,13 +85,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const customerEmail = customIdEmail || requestedEmail || payerEmail;
-    if (!customerEmail || !isValidCleanEmail(customerEmail)) {
-      return NextResponse.json(
-        { error: 'No se pudo determinar un correo electrónico válido para la licencia.' },
-        { status: 400 }
-      );
-    }
+    const customerEmail = customIdEmail;
 
     const customer = await upsertCustomerAfterPayment({
       email: customerEmail,

@@ -164,9 +164,21 @@ export async function detectPdfPageCount(file: File): Promise<number | null> {
       return null;
     }
     const text = new TextDecoder('latin1').decode(bytes);
-    const matches = text.match(/\/Type\s*\/Page\b/g);
-    if (matches && matches.length > 0) {
-      return matches.length;
+    const pageMatches = text.match(/\/Type\s*\/Page\b(?!s)/g);
+    if (pageMatches && pageMatches.length > 0) {
+      return pageMatches.length;
+    }
+
+    const pagesCountMatches = Array.from(
+      text.matchAll(/\/Type\s*\/Pages\b[\s\S]{0,300}?\/Count\s+(\d+)/g)
+    );
+    if (pagesCountMatches.length > 0) {
+      const counts = pagesCountMatches
+        .map((m) => parseInt(m[1], 10))
+        .filter((n) => Number.isFinite(n) && n > 0);
+      if (counts.length > 0) {
+        return Math.max(...counts);
+      }
     }
     return null;
   } catch {

@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Metadata } from 'next';
+import dynamicImport from 'next/dynamic';
 import { ShieldCheck } from 'lucide-react';
 import { requireAdminUser } from '@/lib/admin-auth';
 import {
@@ -9,7 +10,14 @@ import {
   listSupportMessages,
 } from '@/lib/data-store';
 import { GoogleSignInButton } from '@/components/GoogleSignInButton';
-import { AdminDashboardClient } from '@/components/AdminDashboardClient';
+
+const AdminDashboardClient = dynamicImport(
+  () =>
+    import('@/components/AdminDashboardClient').then(
+      (mod) => mod.AdminDashboardClient
+    ),
+  { ssr: false }
+);
 
 export const dynamic = 'force-dynamic';
 
