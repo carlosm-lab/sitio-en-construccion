@@ -58,6 +58,22 @@ En [index.html](file:///c:/Users/usuar/Desktop/.arte/index.html#L55-L65), cambia
 
 ---
 
+## 🚀 Despliegue en Vercel (Recomendado)
+
+Esta plantilla es 100% compatible con **Vercel** sin necesidad de configuración adicional ni comandos de build.
+
+### Opción 1: Despliegue con 1 Clic
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fcarlosm-lab%2Fsitio-en-construccion)
+
+### Opción 2: Desde el Panel de Vercel
+1. Ingresa a [vercel.com](https://vercel.com) e inicia sesión con tu cuenta de GitHub.
+2. Haz clic en **"Add New..."** > **"Project"**.
+3. Importa el repositorio **`carlosm-lab/sitio-en-construccion`**.
+4. En **Framework Preset**, déjalo en **Other** (se detecta automáticamente como estático).
+5. Haz clic en **Deploy**. En menos de 20 segundos tu sitio estará online con SSL gratuito y CDN global.
+
+---
+
 ## 🌐 Publicar en GitHub Pages
 
 Para ver tu sitio en vivo gratis usando GitHub Pages:
