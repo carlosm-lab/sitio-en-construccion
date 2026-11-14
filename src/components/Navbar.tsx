@@ -100,6 +100,12 @@ export function Navbar() {
           >
             Manuales
           </Link>
+          <Link
+            href="/#precios"
+            className="text-sm font-medium text-ink/80 transition-colors hover:text-accent"
+          >
+            Precios
+          </Link>
         </nav>
 
         {/* Acciones Desktop */}
@@ -125,9 +131,6 @@ export function Navbar() {
             </>
           ) : googleUser ? (
             <>
-              <span className="max-w-[180px] truncate text-xs font-medium text-ink/75">
-                {googleUser.email}
-              </span>
               <button
                 type="button"
                 onClick={() => openCheckout()}
@@ -139,10 +142,11 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={signOut}
-                title="Cerrar sesión"
-                className="inline-flex items-center gap-1 rounded-lg border border-ink/20 bg-canvas p-2 text-xs font-medium text-ink/75 hover:text-accent"
+                title={`Cerrar sesión (${googleUser.email})`}
+                className="inline-flex items-center gap-1 rounded-lg border border-ink/20 bg-canvas px-2.5 py-2 text-xs font-medium text-ink/75 hover:text-accent"
               >
                 <LogOut className="h-3.5 w-3.5" />
+                Salir
               </button>
             </>
           ) : (
@@ -216,6 +220,13 @@ export function Navbar() {
             >
               Manuales Técnicos
             </Link>
+            <Link
+              href="/#precios"
+              onClick={() => setMobileOpen(false)}
+              className="rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-surface"
+            >
+              Planes y Precios
+            </Link>
 
             <div className="mt-2 flex flex-col gap-2 border-t border-ink/15 pt-3">
               {hasFullAccess ? (
@@ -254,19 +265,16 @@ export function Navbar() {
                       Iniciar sesión con Google
                     </button>
                   ) : (
-                    <div className="flex items-center justify-between rounded-lg border border-ink/15 bg-surface px-3 py-2 text-xs text-ink">
-                      <span className="truncate font-medium">{googleUser.email}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMobileOpen(false);
-                          signOut();
-                        }}
-                        className="ml-2 font-semibold text-accent underline"
-                      >
-                        Salir
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileOpen(false);
+                        signOut();
+                      }}
+                      className="rounded-lg px-3 py-2 text-left text-xs text-ink/75 hover:bg-surface"
+                    >
+                      Cerrar sesión ({googleUser.email})
+                    </button>
                   )}
                   <button
                     type="button"

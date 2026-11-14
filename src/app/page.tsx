@@ -27,6 +27,7 @@ import {
   ManualCardLockAction,
   UnlockPrimaryButton,
 } from '@/components/HeroTriggerButtons';
+import { PricingSection } from '@/components/PricingSection';
 
 export const dynamic = 'force-dynamic';
 
@@ -115,7 +116,7 @@ export default async function HomePage() {
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-ink/25 bg-canvas px-3.5 py-1 text-xs font-semibold text-ink">
                 <ShieldCheck className="h-3.5 w-3.5 text-accent" />
-                Pase de Acceso Total Activo ({access.googleUser?.email || access.customer?.email})
+                Pase de Acceso Total Activo
               </div>
               <h1 className="mt-3 font-serif text-3xl font-semibold text-ink sm:text-4xl">
                 Biblioteca Completa 4K, Prompts y Manuales Desbloqueados
@@ -143,54 +144,57 @@ export default async function HomePage() {
            VISTA PÚBLICA COMERCIAL (JERARQUÍA VISUAL Y CONVERSIÓN CLARA)
            =================================================================== */
         <>
-          {/* 1. HERO PRINCIPAL */}
-          <section className="rounded-3xl border border-ink/15 bg-surface/80 px-6 py-12 sm:px-12 sm:py-16">
-            <div className="mx-auto max-w-3xl text-center">
-              <div className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-canvas px-4 py-1.5 text-xs font-semibold text-ink">
+          {/* 1. HERO PRINCIPAL DE ALTA CONVERSIÓN */}
+          <section className="relative overflow-hidden rounded-3xl border border-ink/15 bg-gradient-to-b from-surface/90 via-surface/60 to-canvas px-6 py-14 sm:px-12 sm:py-20">
+            <div className="mx-auto max-w-4xl text-center">
+              <div className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-canvas px-4 py-1.5 text-xs font-semibold text-ink shadow-sm">
                 <Sparkles className="h-3.5 w-3.5 text-accent" />
-                Biblioteca Digital Todo-en-Uno · Acceso Vitalicio con Google
+                Librería Editorial de Arte IA · Prompts Verificados y Manuales 4K
               </div>
 
               <h1 className="mt-6 font-serif text-4xl font-semibold tracking-tight text-ink sm:text-5xl lg:text-6xl">
-                Galería de Arte IA en 4K, Prompts Exactos y Manuales de
-                Consistencia
+                Domina la Generación de Imágenes IA con Obras 4K y Prompts de Grado Editorial
               </h1>
 
-              <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-ink/80 sm:text-lg">
-                Explora nuestra colección curada de fotografía editorial IA,
-                concept art y guías de personajes. Con un{' '}
-                <strong className="font-semibold text-ink">
-                  único pago de $25 USD
-                </strong>{' '}
-                desbloqueas para siempre la descarga de todas las obras en 4K
-                sin marca de agua, todos los prompts técnicos y todos los
-                manuales PDF.
+              <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-ink/85 sm:text-lg">
+                Acceso permanente a cientos de piezas fotográficas en resolución nativa 4K (4096×5120px) sin marca de agua, fórmulas exactas de lentes e iluminación, y manuales paso a paso para mantener consistencia anatómica y facial del 100%. Sin suscripciones mensuales.
               </p>
 
-              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              {/* Botones de Acción de Alta Jerarquía */}
+              <div className="mt-8 flex flex-col items-center justify-center gap-3.5 sm:flex-row">
                 <UnlockPrimaryButton label="Obtener Pase de Acceso Total — $25 USD" />
                 <a
-                  href="#galeria"
+                  href="#precios"
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-ink/25 bg-canvas px-5 py-3.5 text-sm font-semibold text-ink transition-colors hover:bg-surface-blue"
                 >
-                  <span>Explorar Catálogo</span>
-                  <ArrowDown className="h-4 w-4 text-accent" />
+                  <span>Ver Planes y Precios</span>
+                </a>
+                <a
+                  href="#galeria"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-semibold text-ink/80 transition-colors hover:text-accent"
+                >
+                  <span>Explorar Catálogo ↓</span>
                 </a>
               </div>
 
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-ink/10 pt-6 text-xs font-medium text-ink/80">
-                <span className="inline-flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-accent" />
-                  Pago único de $25.00 USD (Todo el catálogo incluido)
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-accent" />
-                  Inicio de sesión en 1 clic con Google OAuth
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <ShieldCheck className="h-3.5 w-3.5 text-accent" />
-                  Pago seguro procesado por PayPal
-                </span>
+              {/* Barra de Prueba Social y Confianza */}
+              <div className="mt-10 grid grid-cols-2 gap-4 border-t border-ink/15 pt-8 sm:grid-cols-4">
+                <div className="rounded-xl border border-ink/10 bg-canvas/80 p-3.5 text-center">
+                  <span className="block font-serif text-2xl font-bold text-accent">+500</span>
+                  <span className="text-[11px] font-medium text-ink/75">Prompts Optimizados</span>
+                </div>
+                <div className="rounded-xl border border-ink/10 bg-canvas/80 p-3.5 text-center">
+                  <span className="block font-serif text-2xl font-bold text-accent">4K Nativo</span>
+                  <span className="text-[11px] font-medium text-ink/75">4096×5120px Sin Marcas</span>
+                </div>
+                <div className="rounded-xl border border-ink/10 bg-canvas/80 p-3.5 text-center">
+                  <span className="block font-serif text-2xl font-bold text-accent">Turnarounds</span>
+                  <span className="text-[11px] font-medium text-ink/75">Guías 360° en PDF</span>
+                </div>
+                <div className="rounded-xl border border-ink/10 bg-canvas/80 p-3.5 text-center">
+                  <span className="block font-serif text-2xl font-bold text-accent">Ilimitada</span>
+                  <span className="text-[11px] font-medium text-ink/75">Licencia Comercial</span>
+                </div>
               </div>
             </div>
           </section>
@@ -413,86 +417,39 @@ export default async function HomePage() {
           </section>
 
           {/* Tarjeta Única de Conversión + FAQ */}
-          <section className="mt-16 grid gap-8 lg:grid-cols-12">
-            <div className="flex flex-col justify-between rounded-3xl border-2 border-ink bg-surface p-8 lg:col-span-5">
-              <div>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-ink/20 bg-canvas px-3 py-1 text-xs font-semibold text-ink">
-                  <ShieldCheck className="h-3.5 w-3.5 text-accent" />
-                  Membresía Todo-en-Uno
-                </span>
-                <h2 className="mt-4 font-serif text-3xl font-semibold text-ink">
-                  Pase de Acceso Total Vitalicio
-                </h2>
-                <p className="mt-2 text-xs leading-relaxed text-ink/80">
-                  Acceso completo y permanente a todo el catálogo actual y a las
-                  nuevas obras y guías que se incorporen.
-                </p>
+          {/* 6. SECCIÓN DE PLANES Y PRECIOS (#precios) */}
+          <PricingSection />
 
-                <div className="mt-6 flex items-baseline gap-2 border-y border-ink/15 py-4">
-                  <span className="font-serif text-5xl font-bold text-ink">
-                    $25.00
-                  </span>
-                  <span className="text-xs font-semibold uppercase tracking-wider text-ink/70">
-                    USD · Pago Único
-                  </span>
+          {/* 7. PREGUNTAS FRECUENTES */}
+          <section className="mt-20 rounded-3xl border border-ink/15 bg-canvas p-8 sm:p-12">
+            <div className="mx-auto max-w-3xl text-center">
+              <div className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-surface px-3 py-1 text-xs font-semibold text-ink">
+                <HelpCircle className="h-3.5 w-3.5 text-accent" />
+                Resolución de Dudas
+              </div>
+              <h2 className="mt-3 font-serif text-3xl font-semibold text-ink sm:text-4xl">
+                Preguntas Frecuentes
+              </h2>
+              <p className="mt-2 text-sm text-ink/75">
+                Todo lo que necesitas saber sobre el Pase Total, los formatos 4K y la licencia comercial.
+              </p>
+            </div>
+
+            <dl className="mx-auto mt-10 max-w-3xl space-y-4">
+              {FAQ_ITEMS.map((item) => (
+                <div
+                  key={item.q}
+                  className="rounded-2xl border border-ink/15 bg-surface/50 p-6"
+                >
+                  <dt className="font-serif text-lg font-semibold text-ink">
+                    {item.q}
+                  </dt>
+                  <dd className="mt-2 text-xs leading-relaxed text-ink/80 sm:text-sm">
+                    {item.a}
+                  </dd>
                 </div>
-
-                <ul className="mt-5 space-y-2.5 text-xs text-ink/90">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />
-                    Todas las obras en resolución 4K sin marca de agua.
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />
-                    Todos los prompts exactos + parámetros de lente y seed.
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />
-                    Todos los manuales PDF/ZIP de consistencia de personajes.
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />
-                    Licencia de uso comercial y editorial incluida.
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />
-                    Acceso vitalicio en 1 clic con tu cuenta de Google.
-                  </li>
-                </ul>
-              </div>
-
-              <div className="mt-8">
-                <UnlockPrimaryButton
-                  label="Activar Pase de Acceso Total — $25 USD"
-                  className="w-full"
-                />
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-ink/15 bg-canvas p-8 lg:col-span-7">
-              <div className="flex items-center gap-2">
-                <HelpCircle className="h-5 w-5 text-accent" />
-                <h2 className="font-serif text-2xl font-semibold text-ink">
-                  Preguntas Frecuentes
-                </h2>
-              </div>
-
-              <dl className="mt-6 space-y-5">
-                {FAQ_ITEMS.map((item) => (
-                  <div
-                    key={item.q}
-                    className="rounded-2xl border border-ink/15 bg-surface/50 p-5"
-                  >
-                    <dt className="font-serif text-lg font-semibold text-ink">
-                      {item.q}
-                    </dt>
-                    <dd className="mt-2 text-xs leading-relaxed text-ink/80">
-                      {item.a}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
+              ))}
+            </dl>
           </section>
         </>
       )}

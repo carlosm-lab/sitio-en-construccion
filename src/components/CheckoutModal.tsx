@@ -5,10 +5,16 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
+  ArrowLeft,
+  ArrowRight,
+  Check,
   CheckCircle2,
+  FileCheck2,
   Loader2,
   Lock,
   ShieldCheck,
+  Sparkles,
+  UserCheck,
   X,
 } from 'lucide-react';
 import { useGalleryModal } from './GalleryContext';
@@ -42,10 +48,10 @@ export function CheckoutModal() {
     closeCheckout,
     hasFullAccess,
     googleUser,
-    signInWithGoogle,
     refreshVipSession,
   } = useGalleryModal();
 
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [email, setEmail] = useState('');
   const [editingCustomEmail, setEditingCustomEmail] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -65,12 +71,23 @@ export function CheckoutModal() {
     }
   }, [googleUser, editingCustomEmail]);
 
+  useEffect(() => {
+    if (isCheckoutOpen) {
+      // Si el usuario ya conectó su cuenta de Google, avanzar automáticamente al paso 2
+      if (googleUser?.email) {
+        setStep(2);
+      } else {
+        setStep(1);
+      }
+      setErrorMsg(null);
+    }
+  }, [isCheckoutOpen, googleUser]);
+
   emailRef.current = email;
   termsRef.current = termsAccepted;
   termsTimestampRef.current = termsTimestamp;
 
   const isEmailValid = EMAIL_REGEX.test(email.trim());
-  const isUnlocked = isEmailValid && termsAccepted;
 
   useEffect(() => {
     if (!isCheckoutOpen || hasFullAccess) return;
@@ -105,14 +122,22 @@ export function CheckoutModal() {
     script.onload = () => setSdkReady(true);
     script.onerror = () => {
       setErrorMsg(
-        'No se pudo cargar la pasarela oficial de PayPal. Verifica tu conexión o bloqueadores de scripts.'
+        'No se pudo cargar la pasarela oficial de PayPal. Verifica tu conexión.'
       );
     };
     document.body.appendChild(script);
   }, [isCheckoutOpen, hasFullAccess]);
 
   useEffect(() => {
-    if (!isCheckoutOpen || hasFullAccess || !isUnlocked || !sdkReady || !window.paypal) {
+    if (
+      !isCheckoutOpen ||
+      hasFullAccess ||
+      step !== 3 ||
+      !isEmailValid ||
+      !termsAccepted ||
+      !sdkReady ||
+      !window.paypal
+    ) {
       return;
     }
     const container = paypalContainerRef.current;
@@ -205,7 +230,9 @@ export function CheckoutModal() {
   }, [
     isCheckoutOpen,
     hasFullAccess,
-    isUnlocked,
+    step,
+    isEmailValid,
+    termsAccepted,
     sdkReady,
     closeCheckout,
     refreshVipSession,
@@ -216,205 +243,333 @@ export function CheckoutModal() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4 backdrop-blur-md"
       role="dialog"
       aria-modal="true"
       aria-labelledby="checkout-modal-title"
     >
-      <div className="relative max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-ink/25 bg-canvas p-6 shadow-2xl sm:p-8">
+      <div className="relative max-h-[94vh] w-full max-w-xl overflow-y-auto rounded-3xl border border-ink/20 bg-canvas p-6 shadow-2xl sm:p-8">
         <button
           type="button"
           onClick={closeCheckout}
-          aria-label="Cerrar ventana de checkout"
-          className="absolute right-4 top-4 rounded-lg border border-ink/15 bg-surface p-1.5 text-ink hover:bg-ink hover:text-canvas"
+          aria-label="Cerrar ventana de activación"
+          className="absolute right-5 top-5 rounded-full border border-ink/15 bg-surface p-2 text-ink hover:bg-ink hover:text-canvas"
         >
           <X className="h-4 w-4" />
         </button>
 
-        <div className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-surface px-3 py-1 text-xs font-semibold text-ink">
-          <ShieldCheck className="h-3.5 w-3.5 text-accent" />
-          Pase de Acceso Total Vitalicio · Pago Único
-        </div>
-
-        <h2
-          id="checkout-modal-title"
-          className="mt-3 font-serif text-3xl font-semibold text-ink"
-        >
-          Desbloquear Toda la Biblioteca
-        </h2>
-
-        {selectedArtworkTitle ? (
-          <p className="mt-1 text-xs font-medium text-ink/75">
-            Incluye{' '}
-            <span className="font-semibold text-ink">{selectedArtworkTitle}</span>{' '}
-            + todas las obras 4K, prompts y manuales del catálogo.
-          </p>
-        ) : (
-          <p className="mt-1 text-xs font-medium text-ink/75">
-            Un solo pago desbloquea todo el sitio de forma permanente en tu cuenta de Google.
-          </p>
-        )}
-
-        <div className="mt-5 rounded-xl border border-ink/15 bg-surface/80 p-4">
-          <div className="flex items-baseline justify-between">
-            <span className="text-sm font-semibold text-ink">
-              Pase Total ArteDigital.click (Todo Incluido)
-            </span>
-            <span className="font-serif text-2xl font-bold text-accent">
-              $25.00 USD
+        {/* Indicador de Progreso del Onboarding */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-ink/65">
+            <span>Paso {step} de 3</span>
+            <span>
+              {step === 1 && '1. Tu Cuenta de Google'}
+              {step === 2 && '2. Licencia Comercial'}
+              {step === 3 && '3. Pago Seguro ($25 USD)'}
             </span>
           </div>
-          <ul className="mt-3 space-y-1.5 text-xs text-ink/85">
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-accent" />
-              Descarga ilimitada de TODAS las obras en 4K sin marca de agua.
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-accent" />
-              Acceso completo a todos los prompts exactos y parámetros técnicos.
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-accent" />
-              Todos los Manuales PDF/ZIP de Consistencia de Personajes incluidos.
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-accent" />
-              Acceso directo con Google OAuth (sin claves ni suscripciones).
-            </li>
-          </ul>
+          <div className="mt-2.5 grid grid-cols-3 gap-2">
+            <div
+              className={`h-1.5 rounded-full transition-colors ${
+                step >= 1 ? 'bg-accent' : 'bg-ink/15'
+              }`}
+            />
+            <div
+              className={`h-1.5 rounded-full transition-colors ${
+                step >= 2 ? 'bg-accent' : 'bg-ink/15'
+              }`}
+            />
+            <div
+              className={`h-1.5 rounded-full transition-colors ${
+                step >= 3 ? 'bg-accent' : 'bg-ink/15'
+              }`}
+            />
+          </div>
         </div>
 
-        <div className="mt-5 space-y-4">
+        {/* ===================================================================
+            PASO 1: VINCULACIÓN DE IDENTIDAD DIGITAL (GOOGLE OAUTH)
+            =================================================================== */}
+        {step === 1 && (
           <div>
-            <label
-              htmlFor="checkout-email"
-              className="block text-xs font-semibold uppercase tracking-wider text-ink/80"
-            >
-              1. Cuenta de Google donde activar tu Pase Total
-            </label>
+            <div className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-surface px-3 py-1 text-xs font-semibold text-ink">
+              <UserCheck className="h-3.5 w-3.5 text-accent" />
+              Paso 1: Vinculación Inmediata de Acceso
+            </div>
 
-            {googleUser?.email && !editingCustomEmail ? (
-              <div className="mt-1.5 flex items-center justify-between rounded-xl border border-ink/25 bg-white px-4 py-3 text-xs text-ink">
-                <div className="flex items-center gap-2 truncate">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />
-                  <span className="truncate font-semibold">{googleUser.email}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setEditingCustomEmail(true)}
-                  className="ml-3 shrink-0 font-semibold text-accent underline"
-                >
-                  Cambiar
-                </button>
+            <h2
+              id="checkout-modal-title"
+              className="mt-3 font-serif text-2xl font-semibold text-ink sm:text-3xl"
+            >
+              ¿A qué cuenta de Google vinculamos tu Pase Vitalicio?
+            </h2>
+            <p className="mt-2 text-xs leading-relaxed text-ink/80 sm:text-sm">
+              Tu acceso se asociará a tu cuenta de Google. De esta forma podrás
+              entrar en 1 clic desde cualquier ordenador, tablet o móvil sin
+              necesidad de recordar contraseñas ni códigos.
+            </p>
+
+            <div className="mt-6 space-y-4">
+              <GoogleSignInButton
+                nextPath="/?checkout=1"
+                label="Conectar mi cuenta de Google (1 clic)"
+              />
+
+              <div className="relative flex items-center py-2">
+                <div className="flex-grow border-t border-ink/15" />
+                <span className="mx-3 flex-shrink text-xs font-medium uppercase tracking-wider text-ink/50">
+                  o escribe tu correo de Google
+                </span>
+                <div className="flex-grow border-t border-ink/15" />
               </div>
-            ) : (
-              <div className="mt-2 space-y-2.5">
-                {!googleUser && (
-                  <GoogleSignInButton
-                    nextPath="/?checkout=1"
-                    label="Conectar mi cuenta de Google (1 clic)"
-                  />
-                )}
+
+              <div>
+                <label
+                  htmlFor="checkout-email-input"
+                  className="block text-xs font-semibold text-ink/80"
+                >
+                  Correo Electrónico de Google:
+                </label>
                 <input
-                  id="checkout-email"
+                  id="checkout-email-input"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="tucorreo@gmail.com"
-                  required
-                  className="w-full rounded-xl border border-ink/25 bg-white px-4 py-3 text-sm text-ink placeholder:text-ink/45 focus:border-accent focus:outline-none"
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setEditingCustomEmail(true);
+                  }}
+                  placeholder="ejemplo@gmail.com"
+                  className="mt-1.5 w-full rounded-xl border border-ink/25 bg-white px-4 py-3 text-sm text-ink placeholder:text-ink/40 focus:border-accent focus:outline-none"
                 />
-                {email.length > 0 && !isEmailValid && (
-                  <p className="text-xs text-accent">
-                    Introduce un correo electrónico válido.
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (isEmailValid) {
+                    setErrorMsg(null);
+                    setStep(2);
+                  } else {
+                    setErrorMsg('Por favor ingresa un correo electrónico válido.');
+                  }
+                }}
+                disabled={!isEmailValid}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-95 disabled:opacity-50"
+              >
+                <span>Continuar a Revisión de Licencia</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================================
+            PASO 2: REVISIÓN DE LICENCIA COMERCIAL Y TÉRMINOS
+            =================================================================== */}
+        {step === 2 && (
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-surface px-3 py-1 text-xs font-semibold text-ink">
+              <FileCheck2 className="h-3.5 w-3.5 text-accent" />
+              Paso 2: Resumen y Derechos de Uso
+            </div>
+
+            <h2 className="mt-3 font-serif text-2xl font-semibold text-ink sm:text-3xl">
+              Resumen de tu Pase de Acceso Total
+            </h2>
+
+            {selectedArtworkTitle ? (
+              <p className="mt-1 text-xs text-ink/75">
+                Desbloqueo inmediato de{' '}
+                <span className="font-semibold text-ink">
+                  {selectedArtworkTitle}
+                </span>{' '}
+                + todo el catálogo 4K y manuales.
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-ink/75">
+                Acceso vitalicio todo-en-uno sin suscripciones mensuales.
+              </p>
+            )}
+
+            {/* Tarjeta de Resumen */}
+            <div className="mt-5 rounded-2xl border border-ink/15 bg-surface/75 p-5">
+              <div className="flex items-baseline justify-between border-b border-ink/15 pb-4">
+                <div>
+                  <span className="block font-serif text-lg font-semibold text-ink">
+                    Pase Total Vitalicio
+                  </span>
+                  <span className="text-xs text-ink/70">
+                    Vinculado a:{' '}
+                    <strong className="text-ink">{email.trim()}</strong>
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="font-serif text-3xl font-bold text-accent">
+                    $25.00 USD
+                  </span>
+                  <span className="block text-[10px] font-semibold uppercase text-ink/60">
+                    Pago Único
+                  </span>
+                </div>
+              </div>
+
+              <ul className="mt-4 space-y-2 text-xs text-ink">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-accent" />
+                  Descarga de todas las obras en alta resolución 4K sin marca.
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-accent" />
+                  Fórmulas completas de prompts, semillas y óptica.
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-accent" />
+                  Todos los manuales de consistencia de personajes en PDF/ZIP.
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-accent" />
+                  Licencia de uso comercial y editorial completa.
+                </li>
+              </ul>
+            </div>
+
+            {/* Checkbox de Términos */}
+            <div className="mt-5 rounded-xl border border-ink/20 bg-white p-4">
+              <label className="flex items-start gap-3 text-xs text-ink">
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(e) => setTermsAccepted(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-ink/30 text-accent focus:ring-accent"
+                />
+                <span className="leading-relaxed">
+                  He leído y acepto los{' '}
+                  <Link
+                    href="/terminos-y-condiciones"
+                    target="_blank"
+                    className="font-semibold text-accent underline"
+                  >
+                    Términos de Servicio
+                  </Link>{' '}
+                  y la{' '}
+                  <Link
+                    href="/politica-de-reembolsos"
+                    target="_blank"
+                    className="font-semibold text-accent underline"
+                  >
+                    Política de Reembolsos
+                  </Link>
+                  . Entiendo que adquiero acceso inmediato a bienes digitales
+                  intangibles en 4K y que la entrega es instantánea tras el pago.
+                </span>
+              </label>
+            </div>
+
+            <div className="mt-6 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-ink/20 bg-canvas px-4 py-3 text-xs font-semibold text-ink hover:bg-surface"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Cambiar correo
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (termsAccepted) {
+                    setErrorMsg(null);
+                    setStep(3);
+                  } else {
+                    setErrorMsg(
+                      'Por favor marca la casilla de aceptación de términos para continuar.'
+                    );
+                  }
+                }}
+                disabled={!termsAccepted}
+                className="inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-95 disabled:opacity-50"
+              >
+                <span>Continuar al Pago Seguro</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================================
+            PASO 3: PAGO SEGURO CON PAYPAL Y ACTIVACIÓN INMEDIATA
+            =================================================================== */}
+        {step === 3 && (
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-surface px-3 py-1 text-xs font-semibold text-ink">
+              <ShieldCheck className="h-3.5 w-3.5 text-accent" />
+              Paso 3: Pago Protegido por PayPal
+            </div>
+
+            <h2 className="mt-3 font-serif text-2xl font-semibold text-ink sm:text-3xl">
+              Completa tu activación segura
+            </h2>
+            <p className="mt-1 text-xs text-ink/75">
+              Importe final a pagar:{' '}
+              <strong className="font-semibold text-accent">
+                $25.00 USD (Pago Único)
+              </strong>
+              . Tu acceso se habilitará automáticamente al completar la transacción.
+            </p>
+
+            <div className="mt-6">
+              {isProcessing ? (
+                <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-ink/20 bg-surface p-8 text-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-accent" />
+                  <p className="font-serif text-lg font-semibold text-ink">
+                    Confirmando tu pago con PayPal...
                   </p>
-                )}
+                  <p className="text-xs text-ink/75">
+                    Habilitando tu acceso de por vida y preparando tu biblioteca 4K.
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-ink/15 bg-white p-5">
+                  {!sdkReady && (
+                    <div className="flex items-center justify-center gap-2 py-6 text-xs text-ink">
+                      <Loader2 className="h-4 w-4 animate-spin text-accent" />
+                      Cargando pasarela oficial de PayPal...
+                    </div>
+                  )}
+                  <div ref={paypalContainerRef} className="min-h-[48px]" />
+                </div>
+              )}
+            </div>
+
+            {!isProcessing && (
+              <div className="mt-5 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink/75 hover:text-accent"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  Volver al paso anterior
+                </button>
+
+                <div className="flex items-center gap-2 text-[11px] text-ink/65">
+                  <ShieldCheck className="h-3.5 w-3.5 text-accent" />
+                  Conexión cifrada de 256 bits
+                </div>
               </div>
             )}
           </div>
+        )}
 
-          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-ink/20 bg-surface-blue/65 p-3.5 text-xs leading-relaxed text-ink">
-            <input
-              type="checkbox"
-              checked={termsAccepted}
-              onChange={(e) => setTermsAccepted(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 accent-accent"
-            />
-            <span>
-              He leído y acepto los{' '}
-              <Link
-                href="/terminos-y-condiciones"
-                target="_blank"
-                className="font-semibold text-accent underline"
-              >
-                Términos de Servicio
-              </Link>{' '}
-              y la{' '}
-              <Link
-                href="/politica-de-reembolsos"
-                target="_blank"
-                className="font-semibold text-accent underline"
-              >
-                Política de Reembolsos
-              </Link>
-              . Entiendo que estoy adquiriendo acceso inmediato a bienes digitales
-              intangibles (arte en alta resolución sin marca de agua, prompts y
-              manuales) y que, una vez habilitado mi acceso digital, la venta es
-              final y no aplican reembolsos.
-            </span>
-          </label>
-        </div>
-
+        {/* Mensaje de Error */}
         {errorMsg && (
           <div
             role="alert"
-            className="mt-4 flex items-start gap-2 rounded-xl border border-accent/45 bg-surface p-3 text-xs font-medium text-ink"
+            className="mt-5 flex items-start gap-2 rounded-xl border border-accent/45 bg-surface p-3.5 text-xs font-medium text-ink"
           >
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
             <span>{errorMsg}</span>
-          </div>
-        )}
-
-        <div className="mt-5">
-          {isProcessing ? (
-            <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-ink/20 bg-surface/60 py-6 text-center">
-              <Loader2 className="h-6 w-6 animate-spin text-accent" />
-              <p className="text-xs font-semibold text-ink">
-                Confirmando pago con PayPal y desbloqueando toda la biblioteca...
-              </p>
-            </div>
-          ) : !isUnlocked ? (
-            <button
-              type="button"
-              disabled
-              className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-ink/20 bg-surface-blue px-4 py-3.5 text-sm font-semibold text-ink/50"
-            >
-              <Lock className="h-4 w-4" />
-              Confirma tu correo y acepta los términos para pagar con PayPal
-            </button>
-          ) : (
-            <div>
-              {!sdkReady && (
-                <div className="flex items-center justify-center gap-2 rounded-xl border border-ink/15 bg-surface/50 py-4 text-xs text-ink">
-                  <Loader2 className="h-4 w-4 animate-spin text-accent" />
-                  Cargando pasarela oficial de PayPal...
-                </div>
-              )}
-              <div ref={paypalContainerRef} className="min-h-[48px]" />
-            </div>
-          )}
-        </div>
-
-        {!googleUser && (
-          <div className="mt-5 flex items-center justify-between border-t border-ink/15 pt-4 text-xs text-ink/75">
-            <span>¿Ya adquiriste tu acceso anteriormente?</span>
-            <button
-              type="button"
-              onClick={() => signInWithGoogle('/vip')}
-              className="font-semibold text-accent underline"
-            >
-              Entrar con Google
-            </button>
           </div>
         )}
       </div>
